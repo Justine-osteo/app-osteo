@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-titre: var(--font-title);
+  --font-texte: var(--font-sans);
+}
+
+body {
+  font-family: var(--font-texte);
+  background-color: #F3D8DD;
+  /* bg-fond */
+  color: black;
+}
+
+h1 {
+  font-family: var(--font-titre);
+  color: #B05F63;
+  font-size: 1.5rem;
+  /* Tu peux ajuster, exemple : text-3xl ≈ 1.875rem */
+  font-weight: 600;
+  margin: 0;
+  padding: 0;
+}
+
+h2,
+h3 {
+  font-family: var(--font-titre);
+  color: #B05F63;
+  font-size: 1.25rem;
+  /* Tu peux ajuster en fonction des niveaux */
+  font-weight: 500;
+  margin: 0;
+  padding: 0;
+}
+
+@keyframes slide {
+  0% {
+    left: -33%;
+  }
+
+  50% {
+    left: 100%;
+  }
+
+  100% {
+    left: -33%;
+  }
+}
+
+.animate-slide {
+  animation: slide 1.5s infinite ease-in-out;
+  position: absolute;
+}
+
+/* exemple dans globals.css ou à garder comme classes tailwind */
+.input {
+  @apply w-full p-2 border border-[#B05F63] rounded;
+}
+
+.label {
+  @apply block font-semibold text-[#6E4B42] mb-1;
+}
