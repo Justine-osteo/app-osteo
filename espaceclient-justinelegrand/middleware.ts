@@ -1,23 +1,37 @@
-import { createServerClient } from "@supabase/ssr"
+import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next()
+  // Création d'une réponse initiale
+  // IMPORTANT : On doit passer 'request' ici pour que Next.js gère bien les headers
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
   // Ne jamais bloquer le callback Supabase
   if (request.nextUrl.pathname.startsWith("/auth/callback")) {
     return response
   }
 
-  // Création du client Supabase SSR
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll: (cookiesToSet) => {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        // CORRECTION TYPAGE ICI : On explicite le type de 'cookiesToSet'
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value)
+            response = NextResponse.next({
+              request: {
+                headers: request.headers,
+              },
+            })
             response.cookies.set(name, value, options)
           })
         },
@@ -25,36 +39,33 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // Rafraîchir la session si nécessaire
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
-
   const isClientPage = pathname.startsWith("/mon-espace")
   const isAdminPage = pathname.startsWith("/admin")
 
-  // 🔒 1. Accès client : user doit être connecté
+  // 🔒 1. Accès client
   if (isClientPage && !user) {
     const url = request.nextUrl.clone()
     url.pathname = "/connexion"
-    // AJOUT : On précise la raison pour afficher le message d'erreur
     url.searchParams.set('reason', 'unauthorized')
     return NextResponse.redirect(url)
   }
 
-  // 🔒 2. Accès admin : user doit être connecté + user_metadata.role = "admin"
+  // 🔒 2. Accès admin
   if (isAdminPage) {
     if (!user) {
       const url = request.nextUrl.clone()
       url.pathname = "/connexion"
-      // AJOUT : On précise la raison ici aussi
       url.searchParams.set('reason', 'unauthorized')
       return NextResponse.redirect(url)
     }
 
     if (user.user_metadata.role !== "admin") {
-      // Redirection vers l'espace client si utilisateur non-admin
       const url = request.nextUrl.clone()
       url.pathname = "/mon-espace"
       return NextResponse.redirect(url)

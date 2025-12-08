@@ -1,21 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // Ignore les erreurs TypeScript pendant le build (pour Vercel)
-    typescript: {
-        ignoreBuildErrors: true,
-    },
-    // Ignore les erreurs ESLint pendant le build
-    eslint: {
-        ignoreDuringBuilds: true,
-    },
+    // On autorise les images externes (Supabase, Google, etc.)
     images: {
         remotePatterns: [
             {
                 protocol: 'https',
-                hostname: '**', // Autorise toutes les images externes (Supabase, Unsplash, etc.)
+                hostname: '**',
             },
         ],
     },
+    // Si TypeScript est trop strict pendant le build, on peut décommenter ça :
+    // typescript: {
+    //   ignoreBuildErrors: true,
+    // },
 };
 
 export default nextConfig;
