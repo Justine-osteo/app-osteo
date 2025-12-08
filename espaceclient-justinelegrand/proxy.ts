@@ -1,9 +1,10 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextRequest, NextResponse } from "next/server"
-import type { Database } from '@/types/supabase' // Assurez-vous d'importer le type Database
+import type { Database } from '@/types/supabase'
 
-// 🛑 Le nom de la fonction DOIT être 'middleware' pour être reconnu par Next.js
-export async function middleware(request: NextRequest) {
+// 🛑 NOUVEAU NOM DE CONVENTION: La fonction DOIT être nommée 'proxy' selon les dernières
+// recommandations de Next.js pour le Global Proxy Handler.
+export async function proxy(request: NextRequest) {
 
   // Crée la réponse initiale. C'est l'objet qui accumulera les cookies à retourner.
   const response = NextResponse.next({
