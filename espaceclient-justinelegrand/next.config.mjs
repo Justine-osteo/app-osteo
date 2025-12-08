@@ -1,10 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // Correction de l'erreur "ReferenceError: __dirname is not defined"
-    // Cela empêche Next.js de mal empaqueter @supabase/ssr pour l'environnement Edge
-    experimental: {
-        serverComponentsExternalPackages: ['@supabase/ssr'],
-    },
+    // CORRECTION FINALE :
+    // Selon le log Vercel, l'option a été déplacée à la racine et renommée.
+    // Cela va empêcher le bundling de @supabase/ssr et corriger l'erreur "__dirname".
+    serverExternalPackages: ['@supabase/ssr'],
 
     // Votre configuration existante pour les images
     images: {
