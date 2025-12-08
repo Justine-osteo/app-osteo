@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, Fragment } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { Database } from '@/types/supabase'
@@ -62,9 +62,8 @@ interface ChampTexteProps {
 
 // --- COMPOSANT PRINCIPAL ---
 export default function RemplissageNutrition() {
-    // --- CORRECTION APPLIQUÉE ICI ---
-    // On s'assure que seanceId est bien un string
     const params = useParams()
+    // Gestion robuste de l'ID (tableau ou string) pour éviter les erreurs de runtime
     const seanceId = Array.isArray(params.seanceId) ? params.seanceId[0] : params.seanceId as string;
 
     const router = useRouter()
@@ -100,19 +99,23 @@ export default function RemplissageNutrition() {
                 .from('seances')
                 .select('*, animaux(*)')
                 .eq('id', seanceId)
-                .single<SeanceAvecAnimal>()
+                .single()
 
             if (seanceError || !seanceData) {
                 console.error('Erreur chargement séance :', seanceError)
                 setLoading(false)
                 return
             }
-            setSeance(seanceData)
-            setAnimal(seanceData.animaux)
-            setDate(seanceData.date)
-            setBesoins(seanceData.nutrition_besoins as Besoins || {})
-            setObjectifs(seanceData.nutrition_objectifs || '')
-            setNotesAdmin(seanceData.notes_admin || '')
+
+            // Cast explicite pour traiter les jointures Supabase correctement en TS
+            const dataTyped = seanceData as unknown as SeanceAvecAnimal;
+
+            setSeance(dataTyped)
+            setAnimal(dataTyped.animaux)
+            setDate(dataTyped.date)
+            setBesoins(dataTyped.nutrition_besoins as Besoins || {})
+            setObjectifs(dataTyped.nutrition_objectifs || '')
+            setNotesAdmin(dataTyped.notes_admin || '')
 
             // 2. Récupérer les analyses, recommandations et le questionnaire
             const [analysesRes, recommandationsRes, questionnaireRes] = await Promise.all([
@@ -133,7 +136,12 @@ export default function RemplissageNutrition() {
     // --- Fonctions de sauvegarde ---
     const handleUpdateSeance = async (champ: keyof Seance, valeur: any) => {
         if (!seanceId) return false
-        const { error } = await supabase.from('seances').update({ [champ]: valeur }).eq('id', seanceId)
+
+        // FIX TYPESCRIPT : On cast en 'any' pour contourner l'erreur de typage 'never' sur l'update dynamique
+        const { error } = await (supabase.from('seances') as any)
+            .update({ [champ]: valeur })
+            .eq('id', seanceId)
+
         if (error) {
             console.error('Erreur update seance:', error)
             return false
@@ -143,9 +151,9 @@ export default function RemplissageNutrition() {
 
     // --- Fonctions pour les listes dynamiques ---
     const addAnalyse = async () => {
-        if (!seanceId) return; // --- CORRECTION : Ajout d'un garde
-        const { data, error } = await supabase
-            .from('nutrition_analyses')
+        if (!seanceId) return;
+        // FIX TYPESCRIPT : Cast pour l'insert
+        const { data, error } = await (supabase.from('nutrition_analyses') as any)
             .insert({ seance_id: seanceId, type_aliment: 'Nouveau', analyse_data: structureAnalyseData })
             .select()
             .single()
@@ -157,9 +165,9 @@ export default function RemplissageNutrition() {
     }
 
     const addRecommandation = async () => {
-        if (!seanceId) return; // --- CORRECTION : Ajout d'un garde
-        const { data, error } = await supabase
-            .from('nutrition_recommandations')
+        if (!seanceId) return;
+        // FIX TYPESCRIPT : Cast pour l'insert
+        const { data, error } = await (supabase.from('nutrition_recommandations') as any)
             .insert({ seance_id: seanceId, titre: `Option ${recommandations.length + 1}`, analyse_data: structureAnalyseData, ration_data: structureRationData })
             .select()
             .single()
@@ -176,7 +184,7 @@ export default function RemplissageNutrition() {
 
     return (
         <main className="p-6 max-w-6xl mx-auto space-y-6">
-            {/* En-tête (inchangé) */}
+            {/* En-tête */}
             <div className="bg-[#B05F63] p-4 rounded-lg text-white shadow grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <h2 className="font-charm text-2xl text-white">{animal.nom}</h2>
@@ -201,7 +209,7 @@ export default function RemplissageNutrition() {
                 </div>
             </div>
 
-            {/* Navigation (inchangée) */}
+            {/* Navigation */}
             <div className="flex gap-2 flex-wrap">
                 {[
                     { key: 'questionnaire', label: 'Questionnaire' },
@@ -220,7 +228,7 @@ export default function RemplissageNutrition() {
                 ))}
             </div>
 
-            {/* --- Nouvelles Sections Dynamiques --- */}
+            {/* --- Sections Dynamiques --- */}
 
             <section className={currentSection === 'questionnaire' ? '' : 'hidden'}>
                 <TitrePrincipal>Réponses au Questionnaire Pré-Séance</TitrePrincipal>
@@ -257,7 +265,10 @@ export default function RemplissageNutrition() {
                         key={analyse.id}
                         analyse={analyse}
                         onSave={async (data) => {
-                            const { error } = await supabase.from('nutrition_analyses').update(data).eq('id', analyse.id);
+                            // FIX TYPESCRIPT : Cast pour l'update
+                            const { error } = await (supabase.from('nutrition_analyses') as any)
+                                .update(data)
+                                .eq('id', analyse.id);
                             if (!error) {
                                 setAnalyses(analyses.map(a => a.id === analyse.id ? data : a));
                                 return true;
@@ -290,7 +301,10 @@ export default function RemplissageNutrition() {
                         key={reco.id}
                         recommandation={reco}
                         onSave={async (data) => {
-                            const { error } = await supabase.from('nutrition_recommandations').update(data).eq('id', reco.id);
+                            // FIX TYPESCRIPT : Cast pour l'update
+                            const { error } = await (supabase.from('nutrition_recommandations') as any)
+                                .update(data)
+                                .eq('id', reco.id);
                             if (!error) {
                                 setRecommandations(recommandations.map(r => r.id === reco.id ? data : r));
                                 return true;
@@ -326,7 +340,6 @@ export default function RemplissageNutrition() {
 }
 
 // --- SOUS-COMPOSANTS POUR LES FORMULAIRES ---
-// (Ils restent inchangés mais sont nécessaires)
 
 function FormAnalyse({ analyse, onSave, onDelete, structure }: { analyse: Analyse, onSave: (data: Analyse) => Promise<boolean>, onDelete: () => void, structure: AnalyseData }) {
     const [localAnalyse, setLocalAnalyse] = useState(analyse)
