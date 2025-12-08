@@ -1,7 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextRequest, NextResponse } from "next/server"
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Création d'une réponse initiale
   // IMPORTANT : On doit passer 'request' ici pour que Next.js gère bien les headers
   let response = NextResponse.next({
