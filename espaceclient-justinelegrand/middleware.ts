@@ -16,15 +16,29 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  // --- NOUVEAU CONTRÔLE DE SÉCURITÉ : Variables d'environnement ---
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error("[MIDDLEWARE ERROR] Variables d'environnement Supabase manquantes.");
+    // Retourne une réponse 500 pour débogage
+    return NextResponse.json(
+      { error: "Configuration Supabase manquante dans l'environnement Edge." },
+      { status: 500 }
+    );
+  }
+  // -------------------------------------------------------------------
+
   // Ne jamais bloquer le callback Supabase
   if (request.nextUrl.pathname.startsWith("/auth/callback")) {
     return response
   }
 
-  // Crée le client Supabase Server Side
+  // Crée le client Supabase Server Side (on utilise les variables vérifiées)
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {
