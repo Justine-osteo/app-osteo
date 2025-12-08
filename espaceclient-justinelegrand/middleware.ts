@@ -7,7 +7,7 @@ import type { Database } from '@/types/supabase'
 export async function middleware(request: NextRequest) {
 
   // AJOUT POUR DÉBOGAGE : Vérifier si le middleware est exécuté
-  console.log(`[MIDDLEWARE TEST] Interception de la requête: ${request.nextUrl.pathname}`);
+  console.log(`[MIDDLEWARE TEST !!] Interception de la requête: ${request.nextUrl.pathname}`);
 
   // Crée la réponse initiale. C'est l'objet qui accumulera les cookies à retourner.
   let response = NextResponse.next({
