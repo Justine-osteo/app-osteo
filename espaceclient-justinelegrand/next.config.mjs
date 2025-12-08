@@ -1,22 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // SUPPRESSION DE 'serverExternalPackages' :
-    // C'était une erreur de le mettre ici pour le Middleware. 
-    // En l'enlevant, on permet à Webpack de traiter le paquet @supabase/ssr
-    // et donc d'appliquer le correctif ci-dessous.
+    // On utilise la clé standard pour éviter le bundling de paquets problématiques.
+    // Cette option est nativement supportée par Turbopack et Webpack.
+    serverExternalPackages: ['@supabase/ssr'],
 
-    webpack: (config, { isServer }) => {
-        // Correctif pour l'erreur "__dirname is not defined" dans le Middleware (Edge Runtime)
-        // On remplace toute occurrence de __dirname par une chaîne vide.
-        config.plugins.push(
-            new config.webpack.DefinePlugin({
-                __dirname: JSON.stringify(''),
-            })
-        );
-        return config;
-    },
+    // ⚠️ IMPORTANT : J'ai supprimé le bloc 'webpack' car il faisait planter Turbopack.
+    // Si l'erreur "__dirname" revient, vous devrez changer votre commande de build 
+    // sur Vercel : remplacez "next build --turbo" par "next build" pour désactiver Turbopack.
 
-    // Votre configuration existante pour les images
     images: {
         remotePatterns: [
             {
@@ -25,10 +16,6 @@ const nextConfig = {
             },
         ],
     },
-    // Si TypeScript est trop strict pendant le build, on peut décommenter ça :
-    // typescript: {
-    //   ignoreBuildErrors: true,
-    // },
 };
 
 export default nextConfig;
