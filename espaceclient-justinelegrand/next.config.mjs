@@ -1,15 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // CORRECTION ULTIME POUR __dirname :
-    // On garde serverExternalPackages car c'est recommandé,
-    // MAIS on ajoute une configuration Webpack pour définir manuellement '__dirname'
-    // à une valeur vide. Cela empêche le crash immédiat dans l'Edge Runtime.
-    serverExternalPackages: ['@supabase/ssr'],
+    // SUPPRESSION DE 'serverExternalPackages' :
+    // C'était une erreur de le mettre ici pour le Middleware. 
+    // En l'enlevant, on permet à Webpack de traiter le paquet @supabase/ssr
+    // et donc d'appliquer le correctif ci-dessous.
 
-    webpack: (config, { webpack }) => {
+    webpack: (config, { isServer }) => {
+        // Correctif pour l'erreur "__dirname is not defined" dans le Middleware (Edge Runtime)
+        // On remplace toute occurrence de __dirname par une chaîne vide.
         config.plugins.push(
-            new webpack.DefinePlugin({
-                // Remplace toute mention de __dirname par une chaine vide dans le code compilé
+            new config.webpack.DefinePlugin({
                 __dirname: JSON.stringify(''),
             })
         );
@@ -25,4 +25,10 @@ const nextConfig = {
             },
         ],
     },
-}
+    // Si TypeScript est trop strict pendant le build, on peut décommenter ça :
+    // typescript: {
+    //   ignoreBuildErrors: true,
+    // },
+};
+
+export default nextConfig;
