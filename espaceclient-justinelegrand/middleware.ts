@@ -2,9 +2,12 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextRequest, NextResponse } from "next/server"
 import type { Database } from '@/types/supabase'
 
-// 🛑 NOUVEAU NOM DE CONVENTION: La fonction DOIT être nommée 'proxy' selon les dernières
-// recommandations de Next.js pour le Global Proxy Handler.
-export async function proxy(request: NextRequest) {
+// 🛑 TEST DE DÉTECTION : Utilisation de l'ancienne convention 'middleware'
+// Le fichier doit être nommé middleware.ts et la fonction middleware.
+export async function middleware(request: NextRequest) {
+
+  // AJOUT POUR DÉBOGAGE : Vérifier si le middleware est exécuté
+  console.log(`[MIDDLEWARE TEST] Interception de la requête: ${request.nextUrl.pathname}`);
 
   // Crée la réponse initiale. C'est l'objet qui accumulera les cookies à retourner.
   let response = NextResponse.next({
@@ -27,10 +30,9 @@ export async function proxy(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        // CORRECTION DE LA LOGIQUE: On modifie la variable 'response' sans la recréer.
+        // Logique de correction de Supabase (modifie l'objet 'response')
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            // Modification directe de l'objet 'response'
             response.cookies.set(name, value, options)
           })
         },
@@ -47,7 +49,7 @@ export async function proxy(request: NextRequest) {
   const isClientPage = pathname.startsWith("/mon-espace")
   const isAdminPage = pathname.startsWith("/admin")
 
-  // Récupère le rôle de l'utilisateur de manière sécurisée (peut être null)
+  // Récupère le rôle de l'utilisateur de manière sécurisée
   const userRole = user?.user_metadata?.role
 
   // --- LOGIQUE DE REDIRECTION ---
@@ -55,14 +57,11 @@ export async function proxy(request: NextRequest) {
   // 1. Gestion de la page racine ('/')
   if (pathname === '/') {
     if (user) {
-      // Utilisateur connecté: Rediriger vers l'espace approprié
       if (userRole === "admin") {
         return NextResponse.redirect(new URL("/admin", request.url))
       }
-      // Redirection par défaut (client ou rôle non défini)
       return NextResponse.redirect(new URL("/mon-espace", request.url))
     } else {
-      // Utilisateur non connecté: Rediriger vers la page de connexion
       return NextResponse.redirect(new URL("/connexion", request.url))
     }
   }
@@ -85,7 +84,6 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Vérification du rôle admin de manière sécurisée
     if (userRole !== "admin") {
       const url = request.nextUrl.clone()
       url.pathname = "/mon-espace"
@@ -93,11 +91,10 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Retourne la réponse modifiée (avec les cookies mis à jour si nécessaire)
+  // Si aucune condition de redirection n'est remplie, on continue vers la page demandée.
   return response
 }
 
 export const config = {
-  // Le matcher doit inclure toutes les routes sous surveillance.
   matcher: ["/", "/mon-espace/:path*", "/admin/:path*", "/auth/callback"],
 }
