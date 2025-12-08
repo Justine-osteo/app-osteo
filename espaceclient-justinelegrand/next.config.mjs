@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // On autorise les images externes (Supabase, Google, etc.)
+    // Correction de l'erreur "ReferenceError: __dirname is not defined"
+    // Cela empêche Next.js de mal empaqueter @supabase/ssr pour l'environnement Edge
+    experimental: {
+        serverComponentsExternalPackages: ['@supabase/ssr'],
+    },
+
+    // Votre configuration existante pour les images
     images: {
         remotePatterns: [
             {
