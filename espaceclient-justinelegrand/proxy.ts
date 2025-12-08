@@ -7,7 +7,7 @@ import type { Database } from '@/types/supabase'
 export async function proxy(request: NextRequest) {
 
   // Crée la réponse initiale. C'est l'objet qui accumulera les cookies à retourner.
-  const response = NextResponse.next({
+  let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -47,15 +47,19 @@ export async function proxy(request: NextRequest) {
   const isClientPage = pathname.startsWith("/mon-espace")
   const isAdminPage = pathname.startsWith("/admin")
 
+  // Récupère le rôle de l'utilisateur de manière sécurisée (peut être null)
+  const userRole = user?.user_metadata?.role
+
   // --- LOGIQUE DE REDIRECTION ---
 
   // 1. Gestion de la page racine ('/')
   if (pathname === '/') {
     if (user) {
       // Utilisateur connecté: Rediriger vers l'espace approprié
-      if (user.user_metadata.role === "admin") {
+      if (userRole === "admin") {
         return NextResponse.redirect(new URL("/admin", request.url))
       }
+      // Redirection par défaut (client ou rôle non défini)
       return NextResponse.redirect(new URL("/mon-espace", request.url))
     } else {
       // Utilisateur non connecté: Rediriger vers la page de connexion
@@ -81,8 +85,8 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Vérification du rôle
-    if (user.user_metadata.role !== "admin") {
+    // Vérification du rôle admin de manière sécurisée
+    if (userRole !== "admin") {
       const url = request.nextUrl.clone()
       url.pathname = "/mon-espace"
       return NextResponse.redirect(url)
