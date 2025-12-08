@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr' // Import de 'CookieOptions'
 import type { Database } from '@/types/supabase'
 
 export async function proxy(request: NextRequest) {
@@ -11,7 +11,8 @@ export async function proxy(request: NextRequest) {
         {
             cookies: {
                 getAll: () => request.cookies.getAll(),
-                setAll: (cookies) => {
+                // Correction de l'erreur 'any' implicite
+                setAll: (cookies: { name: string; value: string; options: CookieOptions }[]) => {
                     cookies.forEach(({ name, value, options }) => {
                         response.cookies.set(name, value, options)
                     })
@@ -27,5 +28,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
+    // Le matcher doit correspondre aux routes de votre application nécessitant l'authentification
+    // Le chemin '/mon-espace/:path*' est typique pour les zones sécurisées.
     matcher: ['/mon-espace/:path*'],
 }
