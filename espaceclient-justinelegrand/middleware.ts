@@ -1,10 +1,12 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextRequest, NextResponse } from "next/server"
+import type { Database } from '@/types/supabase' // Assurez-vous d'importer le type Database
 
-export async function proxy(request: NextRequest) {
-  // Création d'une réponse initiale
-  // IMPORTANT : On doit passer 'request' ici pour que Next.js gère bien les headers
-  let response = NextResponse.next({
+// 🛑 Le nom de la fonction DOIT être 'middleware' pour être reconnu par Next.js
+export async function middleware(request: NextRequest) {
+
+  // Crée la réponse initiale. C'est l'objet qui accumulera les cookies à retourner.
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -15,7 +17,8 @@ export async function proxy(request: NextRequest) {
     return response
   }
 
-  const supabase = createServerClient(
+  // Crée le client Supabase Server Side
+  const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -23,15 +26,10 @@ export async function proxy(request: NextRequest) {
         getAll() {
           return request.cookies.getAll()
         },
-        // CORRECTION TYPAGE ICI : On explicite le type de 'cookiesToSet'
+        // CORRECTION DE LA LOGIQUE: On modifie la variable 'response' sans la recréer.
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value)
-            response = NextResponse.next({
-              request: {
-                headers: request.headers,
-              },
-            })
+            // Modification directe de l'objet 'response'
             response.cookies.set(name, value, options)
           })
         },
@@ -39,7 +37,7 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Rafraîchir la session si nécessaire
+  // Rafraîchir la session et obtenir l'utilisateur
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -48,7 +46,24 @@ export async function proxy(request: NextRequest) {
   const isClientPage = pathname.startsWith("/mon-espace")
   const isAdminPage = pathname.startsWith("/admin")
 
-  // 🔒 1. Accès client
+  // --- LOGIQUE DE REDIRECTION ---
+
+  // 1. Gestion de la page racine ('/')
+  if (pathname === '/') {
+    if (user) {
+      // Utilisateur connecté: Rediriger vers l'espace approprié
+      if (user.user_metadata.role === "admin") {
+        return NextResponse.redirect(new URL("/admin", request.url))
+      }
+      return NextResponse.redirect(new URL("/mon-espace", request.url))
+    } else {
+      // Utilisateur non connecté: Rediriger vers la page de connexion
+      return NextResponse.redirect(new URL("/connexion", request.url))
+    }
+  }
+
+
+  // 🔒 2. Accès client
   if (isClientPage && !user) {
     const url = request.nextUrl.clone()
     url.pathname = "/connexion"
@@ -56,7 +71,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // 🔒 2. Accès admin
+  // 🔒 3. Accès admin
   if (isAdminPage) {
     if (!user) {
       const url = request.nextUrl.clone()
@@ -65,6 +80,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
+    // Vérification du rôle
     if (user.user_metadata.role !== "admin") {
       const url = request.nextUrl.clone()
       url.pathname = "/mon-espace"
@@ -72,9 +88,11 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Retourne la réponse modifiée (avec les cookies mis à jour si nécessaire)
   return response
 }
 
 export const config = {
-  matcher: ["/mon-espace/:path*", "/admin/:path*", "/auth/callback"],
+  // Le matcher doit inclure toutes les routes sous surveillance.
+  matcher: ["/", "/mon-espace/:path*", "/admin/:path*", "/auth/callback"],
 }
