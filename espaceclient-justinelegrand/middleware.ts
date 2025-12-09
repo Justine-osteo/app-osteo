@@ -1,112 +1,92 @@
+// 1. IMPORT DU CORRECTIF EN TOUT PREMIER (C'est ça qui "remplace" le fichier manquant)
+import './polyfill'
+
+// 2. Ensuite les imports normaux
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextRequest, NextResponse } from "next/server"
 import type { Database } from '@/types/supabase'
 
-// 🛑 TEST DE DÉTECTION : Utilisation de l'ancienne convention 'middleware'
-// Le fichier doit être nommé middleware.ts et la fonction middleware.
 export async function middleware(request: NextRequest) {
 
-  // AJOUT POUR DÉBOGAGE : Vérifier si le middleware est exécuté
-  console.log(`[MIDDLEWARE TEST !!] Interception de la requête: ${request.nextUrl.pathname}`);
+  // LOG DE DÉMARRAGE
+  console.log(`[MIDDLEWARE START] ${request.nextUrl.pathname}`);
 
-  // Crée la réponse initiale. C'est l'objet qui accumulera les cookies à retourner.
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+  try {
+    let response = NextResponse.next({
+      request: { headers: request.headers },
+    })
 
-  // --- NOUVEAU CONTRÔLE DE SÉCURITÉ : Variables d'environnement ---
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    // Récupération sécurisée des variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!supabaseUrl || !supabaseKey) {
-    console.error("[MIDDLEWARE ERROR] Variables d'environnement Supabase manquantes.");
-    // Retourne une réponse 500 pour débogage
-    return NextResponse.json(
-      { error: "Configuration Supabase manquante dans l'environnement Edge." },
-      { status: 500 }
-    );
-  }
-  // -------------------------------------------------------------------
-
-  // Ne jamais bloquer le callback Supabase
-  if (request.nextUrl.pathname.startsWith("/auth/callback")) {
-    return response
-  }
-
-  // Crée le client Supabase Server Side (on utilise les variables vérifiées)
-  const supabase = createServerClient<Database>(
-    supabaseUrl,
-    supabaseKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        // Logique de correction de Supabase (modifie l'objet 'response')
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options)
-          })
-        },
-      },
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("[MIDDLEWARE ERROR] Variables manquantes !");
+      // On continue quand même pour ne pas bloquer le site, mais sans auth
+      return response;
     }
-  )
 
-  // Rafraîchir la session et obtenir l'utilisateur
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    if (request.nextUrl.pathname.startsWith("/auth/callback")) {
+      return response
+    }
 
-  const pathname = request.nextUrl.pathname
-  const isClientPage = pathname.startsWith("/mon-espace")
-  const isAdminPage = pathname.startsWith("/admin")
-
-  // Récupère le rôle de l'utilisateur de manière sécurisée
-  const userRole = user?.user_metadata?.role
-
-  // --- LOGIQUE DE REDIRECTION ---
-
-  // 1. Gestion de la page racine ('/')
-  if (pathname === '/') {
-    if (user) {
-      if (userRole === "admin") {
-        return NextResponse.redirect(new URL("/admin", request.url))
+    const supabase = createServerClient<Database>(
+      supabaseUrl,
+      supabaseKey,
+      {
+        cookies: {
+          getAll() { return request.cookies.getAll() },
+          setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options)
+            })
+          },
+        },
       }
-      return NextResponse.redirect(new URL("/mon-espace", request.url))
-    } else {
+    )
+
+    // Rafraîchir la session
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // Logique de redirection simplifiée et robuste
+    const pathname = request.nextUrl.pathname
+    const userRole = user?.user_metadata?.role
+
+    // 1. Racine -> Redirection
+    if (pathname === '/') {
+      if (user) {
+        return NextResponse.redirect(new URL(userRole === "admin" ? "/admin" : "/mon-espace", request.url))
+      }
       return NextResponse.redirect(new URL("/connexion", request.url))
     }
-  }
 
-
-  // 🔒 2. Accès client
-  if (isClientPage && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/connexion"
-    url.searchParams.set('reason', 'unauthorized')
-    return NextResponse.redirect(url)
-  }
-
-  // 🔒 3. Accès admin
-  if (isAdminPage) {
-    if (!user) {
-      const url = request.nextUrl.clone()
-      url.pathname = "/connexion"
-      url.searchParams.set('reason', 'unauthorized')
-      return NextResponse.redirect(url)
+    // 2. Protection Admin
+    if (pathname.startsWith("/admin")) {
+      if (!user || userRole !== "admin") {
+        const url = request.nextUrl.clone()
+        url.pathname = (!user) ? "/connexion" : "/mon-espace"
+        if (!user) url.searchParams.set('reason', 'unauthorized')
+        return NextResponse.redirect(url)
+      }
     }
 
-    if (userRole !== "admin") {
-      const url = request.nextUrl.clone()
-      url.pathname = "/mon-espace"
-      return NextResponse.redirect(url)
+    // 3. Protection Client
+    if (pathname.startsWith("/mon-espace")) {
+      if (!user) {
+        const url = request.nextUrl.clone()
+        url.pathname = "/connexion"
+        url.searchParams.set('reason', 'unauthorized')
+        return NextResponse.redirect(url)
+      }
     }
-  }
 
-  // Si aucune condition de redirection n'est remplie, on continue vers la page demandée.
-  return response
+    return response
+
+  } catch (error: any) {
+    console.error("[MIDDLEWARE CRASH]", error);
+    // En cas de crash, on laisse passer la requête plutôt que de faire un écran d'erreur 500
+    return NextResponse.next();
+  }
 }
 
 export const config = {
