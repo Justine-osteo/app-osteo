@@ -1,13 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // On utilise la clé standard pour éviter le bundling de paquets problématiques.
-    // Cette option est nativement supportée par Turbopack et Webpack.
+    // 1. On garde l'exclusion du paquet pour éviter les conflits d'import
     serverExternalPackages: ['@supabase/ssr'],
 
-    // ⚠️ IMPORTANT : J'ai supprimé le bloc 'webpack' car il faisait planter Turbopack.
-    // Si l'erreur "__dirname" revient, vous devrez changer votre commande de build 
-    // sur Vercel : remplacez "next build --turbo" par "next build" pour désactiver Turbopack.
+    // 2. LE CORRECTIF ULTIME (nécessite "next build" sans --turbo)
+    // On utilise Webpack pour définir globalement la variable manquante.
+    webpack: (config, { webpack }) => {
+        config.plugins.push(
+            new webpack.DefinePlugin({
+                // Ceci remplace toute mention de __dirname par "" dans le code final
+                __dirname: JSON.stringify(''),
+            })
+        );
+        return config;
+    },
 
+    // Ta config d'images existante
     images: {
         remotePatterns: [
             {
