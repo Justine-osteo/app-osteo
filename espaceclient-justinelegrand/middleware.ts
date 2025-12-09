@@ -38,8 +38,20 @@ export async function middleware(request: NextRequest) {
   );
 
   // 3. On récupère l'utilisateur connecté
-  // Note : getUser() valide le token côté serveur. Si le token est périmé, user sera null.
   const { data: { user } } = await supabase.auth.getUser();
+
+  // --- ZONE DE DEBUG (AFFICHE DANS LE TERMINAL SERVEUR) ---
+  console.log('------------------------------------------------');
+  console.log('>>> DEBUG MIDDLEWARE : ', request.nextUrl.pathname);
+  if (user) {
+    console.log('>>> USER CONNECTÉ :', user.email);
+    console.log('>>> USER METADATA :', user.user_metadata);
+    console.log('>>> APP METADATA :', user.app_metadata);
+  } else {
+    console.log('>>> AUCUN USER DÉTECTÉ (user is null)');
+  }
+  console.log('------------------------------------------------');
+  // ---------------------------------------------------------
 
   // --- TES RÈGLES ---
 
@@ -51,6 +63,7 @@ export async function middleware(request: NextRequest) {
       !request.nextUrl.pathname.startsWith('/auth') &&
       request.nextUrl.pathname !== '/'
     ) {
+      console.log('>>> REDIRECTION : Pas connecté -> vers /connexion');
       return NextResponse.redirect(new URL('/connexion', request.url));
     }
   }
@@ -62,19 +75,23 @@ export async function middleware(request: NextRequest) {
       user.user_metadata?.role === 'admin' ||
       user.app_metadata?.role === 'admin';
 
+    console.log('>>> IS ADMIN ?', isAdmin); // Debug rôle
+
     // Protection de la route /admin
     if (request.nextUrl.pathname.startsWith('/admin') && !isAdmin) {
-      // Si pas admin, on renvoie au dashboard
+      console.log('>>> REDIRECTION : Tentative accès Admin sans droits -> vers /dashboard');
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
     // Redirection automatique de l'accueil vers le dashboard
     if (request.nextUrl.pathname === '/') {
+      console.log('>>> REDIRECTION : Accueil -> vers /dashboard');
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
     // Si on est connecté et qu'on essaie d'aller sur /connexion -> on renvoie au dashboard
     if (request.nextUrl.pathname.startsWith('/connexion')) {
+      console.log('>>> REDIRECTION : Déjà connecté sur page login -> vers /dashboard');
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }
