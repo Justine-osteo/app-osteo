@@ -1,81 +1,61 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
-    // Log pour vérifier que Supabase nous renvoie bien ici
-    console.log(`[AUTH CALLBACK] Hit sur: ${request.url}`);
+export async function GET(request: Request) {
+    const { searchParams, origin } = new URL(request.url);
+    const code = searchParams.get('code');
+    const next = searchParams.get('next') ?? '/';
 
-    const { searchParams, origin } = new URL(request.url)
-    const code = searchParams.get('code')
-    const next = searchParams.get('next') ?? '/mon-espace'
+    console.log('🔹 [CALLBACK START] Code présent:', !!code, '| Redirection prévue vers:', next);
 
     if (code) {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-        if (!supabaseUrl || !supabaseKey) {
-            console.error("[AUTH CALLBACK] Erreur : Variables manquantes");
-            return NextResponse.redirect(`${origin}/connexion?error=config_missing`)
-        }
-
-        const cookieStore = {
-            getAll() { return request.cookies.getAll() },
-            setAll(cookies: { name: string; value: string; options: CookieOptions }[]) {
-                cookies.forEach(({ name, value, options }) => {
-                    request.cookies.set({ name, value, ...options })
-                })
-            }
-        }
+        // IMPORTANT : await cookies() est nécessaire dans les versions récentes de Next.js
+        const cookieStore = await cookies();
 
         const supabase = createServerClient(
-            supabaseUrl,
-            supabaseKey,
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
                 cookies: {
-                    getAll() {
-                        return request.cookies.getAll()
+                    get(name: string) {
+                        return cookieStore.get(name)?.value;
                     },
-                    // CORRECTION TYPESCRIPT ICI :
-                    // On définit explicitement le type du paramètre 'cookies'
-                    setAll(cookies: { name: string; value: string; options: CookieOptions }[]) {
-                        cookies.forEach(({ name, value, options }) => {
-                            // On prépare les cookies sur la requête pour l'échange de code
-                            request.cookies.set({
-                                name,
-                                value,
-                                ...options,
-                            })
-                        })
+                    set(name: string, value: string, options: CookieOptions) {
+                        try {
+                            cookieStore.set({ name, value, ...options });
+                        } catch (error) {
+                            // On ignore l'erreur si on ne peut pas set le cookie (ex: server component strict)
+                        }
+                    },
+                    remove(name: string, options: CookieOptions) {
+                        try {
+                            cookieStore.delete({ name, ...options });
+                        } catch (error) {
+                            // Idem
+                        }
                     },
                 },
             }
-        )
+        );
 
-        // Échange du code contre une session
-        const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
+        // Tentative d'échange du code contre une session
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-        if (!error && session) {
-            const userRole = session.user.user_metadata?.role
-
-            const redirectUrl = userRole === 'admin'
-                ? `${origin}/admin/dashboard`
-                : `${origin}${next}`
-
-            const response = NextResponse.redirect(redirectUrl)
-
-            // CRITIQUE : Il faut appliquer les cookies de session sur la RÉPONSE finale
-            // pour que le navigateur s'en souvienne.
-            const { cookies } = await import('next/headers') // Astuce pour récupérer les cookies settiés
-
-            // Réplication manuelle simple pour assurer la persistance si createServerClient n'a pas suffi
-            // Note: Avec @supabase/ssr récent, le setAll ci-dessus suffit souvent, 
-            // mais on s'assure que la réponse part avec les bons headers.
-            // Dans ce bloc spécifique, le createServerClient a déjà manipulé les cookies de la request/response
-            // via le middleware implicite. On retourne juste la réponse.
-
-            return response
+        if (error) {
+            console.error('🔴 [CALLBACK ERROR] Échec échange code:', error.message);
+            // Redirection vers connexion avec le message d'erreur
+            return NextResponse.redirect(`${origin}/connexion?error=${encodeURIComponent(error.message)}`);
         }
+
+        // Succès
+        console.log('🟢 [CALLBACK SUCCESS] Session créée pour User ID:', data.session?.user?.id);
+
+        // Redirection finale
+        return NextResponse.redirect(`${origin}${next}`);
     }
 
-    return NextResponse.redirect(`${origin}/connexion?error=auth-code-error`)
+    console.warn('🟠 [CALLBACK WARN] Pas de code fourni dans l\'URL');
+    // En cas d'absence de code
+    return NextResponse.redirect(`${origin}/connexion?error=no-code`);
 }
