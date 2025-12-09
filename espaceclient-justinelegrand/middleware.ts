@@ -1,15 +1,11 @@
-// 1. IMPORT DU CORRECTIF EN TOUT PREMIER (C'est ça qui "remplace" le fichier manquant)
+// 1. IMPORT DU CORRECTIF (Toujours en premier)
 import './polyfill'
 
-// 2. Ensuite les imports normaux
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextRequest, NextResponse } from "next/server"
 import type { Database } from '@/types/supabase'
 
 export async function middleware(request: NextRequest) {
-
-  // LOG DE DÉMARRAGE
-  console.log(`[MIDDLEWARE START] ${request.nextUrl.pathname}`);
 
   try {
     let response = NextResponse.next({
@@ -21,9 +17,7 @@ export async function middleware(request: NextRequest) {
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error("[MIDDLEWARE ERROR] Variables manquantes !");
-      // On continue quand même pour ne pas bloquer le site, mais sans auth
-      return response;
+      throw new Error("Variables d'environnement Supabase manquantes (URL ou KEY).");
     }
 
     if (request.nextUrl.pathname.startsWith("/auth/callback")) {
@@ -46,13 +40,17 @@ export async function middleware(request: NextRequest) {
     )
 
     // Rafraîchir la session
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error } = await supabase.auth.getUser()
 
-    // Logique de redirection simplifiée et robuste
+    // Si une erreur Supabase survient (hors "non connecté"), on peut vouloir la voir
+    if (error && error.message !== "Auth session missing!") {
+      console.error("Supabase Error:", error);
+    }
+
     const pathname = request.nextUrl.pathname
     const userRole = user?.user_metadata?.role
 
-    // 1. Racine -> Redirection
+    // --- REDIRECTIONS ---
     if (pathname === '/') {
       if (user) {
         return NextResponse.redirect(new URL(userRole === "admin" ? "/admin" : "/mon-espace", request.url))
@@ -60,17 +58,15 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/connexion", request.url))
     }
 
-    // 2. Protection Admin
     if (pathname.startsWith("/admin")) {
       if (!user || userRole !== "admin") {
         const url = request.nextUrl.clone()
         url.pathname = (!user) ? "/connexion" : "/mon-espace"
-        if (!user) url.searchParams.set('reason', 'unauthorized')
+        url.searchParams.set('reason', 'unauthorized')
         return NextResponse.redirect(url)
       }
     }
 
-    // 3. Protection Client
     if (pathname.startsWith("/mon-espace")) {
       if (!user) {
         const url = request.nextUrl.clone()
@@ -83,9 +79,15 @@ export async function middleware(request: NextRequest) {
     return response
 
   } catch (error: any) {
-    console.error("[MIDDLEWARE CRASH]", error);
-    // En cas de crash, on laisse passer la requête plutôt que de faire un écran d'erreur 500
-    return NextResponse.next();
+    // 🛑 ICI : AU LIEU DE FAIRE 404, ON AFFICHE L'ERREUR
+    return NextResponse.json(
+      {
+        status: "Error caught in middleware",
+        message: error.message,
+        stack: error.stack
+      },
+      { status: 500 }
+    );
   }
 }
 
