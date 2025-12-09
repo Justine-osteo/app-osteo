@@ -1,97 +1,105 @@
-// 1. IMPORT DU CORRECTIF (Toujours en premier)
-import './polyfill'
-
-import { createServerClient, type CookieOptions } from "@supabase/ssr"
-import { NextRequest, NextResponse } from "next/server"
-import type { Database } from '@/types/supabase'
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+  // 1. Initialisation de la réponse
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
 
-  try {
-    let response = NextResponse.next({
-      request: { headers: request.headers },
-    })
-
-    // Récupération sécurisée des variables
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Variables d'environnement Supabase manquantes (URL ou KEY).");
-    }
-
-    if (request.nextUrl.pathname.startsWith("/auth/callback")) {
-      return response
-    }
-
-    const supabase = createServerClient<Database>(
-      supabaseUrl,
-      supabaseKey,
-      {
-        cookies: {
-          getAll() { return request.cookies.getAll() },
-          setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              response.cookies.set(name, value, options)
-            })
-          },
+  // 2. Création du client Supabase
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
         },
-      }
-    )
-
-    // Rafraîchir la session
-    const { data: { user }, error } = await supabase.auth.getUser()
-
-    // Si une erreur Supabase survient (hors "non connecté"), on peut vouloir la voir
-    if (error && error.message !== "Auth session missing!") {
-      console.error("Supabase Error:", error);
-    }
-
-    const pathname = request.nextUrl.pathname
-    const userRole = user?.user_metadata?.role
-
-    // --- REDIRECTIONS ---
-    if (pathname === '/') {
-      if (user) {
-        return NextResponse.redirect(new URL(userRole === "admin" ? "/admin" : "/mon-espace", request.url))
-      }
-      return NextResponse.redirect(new URL("/connexion", request.url))
-    }
-
-    if (pathname.startsWith("/admin")) {
-      if (!user || userRole !== "admin") {
-        const url = request.nextUrl.clone()
-        url.pathname = (!user) ? "/connexion" : "/mon-espace"
-        url.searchParams.set('reason', 'unauthorized')
-        return NextResponse.redirect(url)
-      }
-    }
-
-    if (pathname.startsWith("/mon-espace")) {
-      if (!user) {
-        const url = request.nextUrl.clone()
-        url.pathname = "/connexion"
-        url.searchParams.set('reason', 'unauthorized')
-        return NextResponse.redirect(url)
-      }
-    }
-
-    return response
-
-  } catch (error: any) {
-    // 🛑 ICI : AU LIEU DE FAIRE 404, ON AFFICHE L'ERREUR
-    return NextResponse.json(
-      {
-        status: "Error caught in middleware",
-        message: error.message,
-        stack: error.stack
+        set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          });
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+        },
+        remove(name: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          });
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          });
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          });
+        },
       },
-      { status: 500 }
-    );
+    }
+  );
+
+  // 3. Récupération de l'utilisateur
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // --- LOGIQUE DE PROTECTION ---
+
+  // A. Si l'utilisateur N'EST PAS connecté
+  // Et qu'il n'est pas sur la page de connexion ou les routes d'auth
+  if (!user && !request.nextUrl.pathname.startsWith('/connexion') && !request.nextUrl.pathname.startsWith('/auth')) {
+    // Si on n'est pas à la racine (gérée par page.tsx), on redirige vers /connexion
+    if (request.nextUrl.pathname !== '/') {
+      return NextResponse.redirect(new URL('/connexion', request.url));
+    }
   }
+
+  // B. Si l'utilisateur EST connecté
+  if (user) {
+    // On récupère le rôle dans user_metadata (qui correspond à raw_user_meta_data en base)
+    const isAdmin = user.user_metadata?.role === 'admin';
+
+    // Protection de la route /admin
+    if (request.nextUrl.pathname.startsWith('/admin') && !isAdmin) {
+      // Si pas admin, on renvoie vers le dashboard
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+
+    // Si l'utilisateur arrive sur la racine '/', on l'envoie direct au dashboard
+    if (request.nextUrl.pathname === '/') {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+  }
+
+  return response;
 }
 
 export const config = {
-  matcher: ["/", "/mon-espace/:path*", "/admin/:path*", "/auth/callback"],
-}
-
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - assets (ton dossier d'assets public)
+     * - lottie (tes animations json)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|assets|lottie|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+};
