@@ -1,26 +1,48 @@
-import { createServerSupabase } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
     const { searchParams, origin } = new URL(request.url)
     const code = searchParams.get('code')
 
-    // On récupère le paramètre "next" pour rediriger l'utilisateur là où il voulait aller,
-    // sinon par défaut on l'envoie sur /mon-espace
+    // On récupère "next" ou on redirige par défaut vers l'espace client
     const next = searchParams.get('next') ?? '/mon-espace'
 
     if (code) {
-        // Initialisation de Supabase via votre helper serveur
-        const supabase = await createServerSupabase()
+        // 1. Initialisation EXPLICITE pour éviter l'erreur "No API key found"
+        // On n'utilise pas le helper externe pour l'instant pour garantir la stabilité ici.
+        const cookieStore = {
+            getAll() { return [] },
+            setAll() { }
+        }
 
-        // Échange du code temporaire contre une session active
-        const { data: { session }, error: sessionError } = await supabase.auth.exchangeCodeForSession(code)
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        return request.cookies.getAll()
+                    },
+                    // CORRECTION : Typage explicite de 'cookiesToSet' et utilisation de 'options'
+                    setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+                        cookiesToSet.forEach(({ name, value, options }) => {
+                            request.cookies.set({
+                                name,
+                                value,
+                                ...options,
+                            })
+                        })
+                    },
+                },
+            }
+        )
 
-        if (!sessionError && session) {
-            // --- CORRECTION MAJEURE ---
-            // Au lieu de faire une requête SQL lente et risquée vers la table 'clients',
-            // on lit directement le rôle stocké dans le token de l'utilisateur.
-            // C'est ce même rôle qui est utilisé par vos règles de sécurité RLS.
+        // 2. Échange du code contre une session
+        const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
+
+        if (!error && session) {
+            // 3. VOTRE LOGIQUE : Vérification du rôle
             const userRole = session.user.user_metadata?.role
 
             if (userRole === 'admin') {
@@ -28,11 +50,11 @@ export async function GET(request: Request) {
                 return NextResponse.redirect(`${origin}/admin/dashboard`)
             }
 
-            // C'est un client -> Direction l'espace client (ou l'URL demandée)
+            // C'est un client (ou autre) -> Direction la page demandée
             return NextResponse.redirect(`${origin}${next}`)
         }
     }
 
-    // En cas d'erreur de code ou de session, on renvoie vers la page de login ou d'erreur
-    return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+    // Si erreur de code ou pas de session
+    return NextResponse.redirect(`${origin}/connexion?error=auth-code-error`)
 }
