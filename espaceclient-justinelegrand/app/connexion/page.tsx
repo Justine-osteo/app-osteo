@@ -60,7 +60,7 @@ function LoginForm() {
             email,
             options: {
                 // Supabase saura maintenant exactement où rediriger
-                emailRedirectTo: `${origin}/auth/callback`,
+                emailRedirectTo: `http://localhost:3000/auth/callback`,
             },
         });
 
