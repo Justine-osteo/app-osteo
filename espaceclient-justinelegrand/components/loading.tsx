@@ -1,7 +1,7 @@
 'use client';
 
 import Lottie from 'lottie-react';
-import dogAnimation from '@/src/assets/lottie/chien-chargement.json';
+import dogAnimation from '@/assets/lottie/chien-chargement.json';
 
 export default function Loading() {
   return (
