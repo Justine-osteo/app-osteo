@@ -1,15 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // 1. On n'utilise PLUS 'serverExternalPackages' pour @supabase/ssr.
-    // Cela permet à Webpack de traiter le fichier et d'appliquer notre correctif.
-
-    // 2. Le Correctif "Article Solution" :
-    // On injecte manuellement une variable __dirname vide pour tromper la librairie.
-    // (Cela fonctionne car tu as désactivé le mode --turbo sur Vercel)
+    // Application de la Solution 4 de ton article :
+    // On utilise Webpack pour définir __dirname comme étant le dossier de travail actuel (process.cwd())
+    // Cela permet aux librairies qui dépendent de cette variable de ne pas planter.
     webpack: (config, { webpack }) => {
         config.plugins.push(
             new webpack.DefinePlugin({
-                __dirname: JSON.stringify(''),
+                __dirname: JSON.stringify(process.cwd()),
             })
         );
         return config;
@@ -24,3 +21,5 @@ const nextConfig = {
         ],
     },
 };
+
+export default nextConfig;
