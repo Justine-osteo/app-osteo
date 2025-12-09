@@ -5,12 +5,14 @@ import { supabase } from '@/lib/supabase/client';
 import TitrePrincipal from '@/components/ui/TitrePrincipal';
 import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, Info } from 'lucide-react';
+
 // Petit composant wrapper pour utiliser useSearchParams sans bloquer le build
 function LoginForm() {
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
     const [loading, setLoading] = useState(false);
     const searchParams = useSearchParams();
+
     // 1. Détection de la raison de la redirection (via l'URL)
     useEffect(() => {
         const errorType = searchParams.get('error');
@@ -27,6 +29,7 @@ function LoginForm() {
             });
         }
     }, [searchParams]);
+
     // 2. Fonction de traduction des erreurs Supabase
     const traduireErreur = (erreurAnglais: string) => {
         const lowerError = erreurAnglais.toLowerCase();
@@ -42,19 +45,25 @@ function LoginForm() {
         // Fallback : on retourne l'erreur telle quelle si on ne la connait pas
         return `Erreur : ${erreurAnglais}`;
     };
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault(); // Empêche le rechargement de page
         setLoading(true);
         setMessage(null);
-        // On récupère l'URL du site depuis les variables d'environnement
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+
+        // CORRECTION CRITIQUE ICI :
+        // On remplace process.env par window.location.origin.
+        // Cela garantit que l'URL est toujours correcte (localhost ou vercel.app)
+        const origin = window.location.origin;
+
         const { error } = await supabase.auth.signInWithOtp({
             email,
             options: {
-                // On utilise la variable pour que ça marche partout (local et production)
-                emailRedirectTo: `${siteUrl}/auth/callback`,
+                // Supabase saura maintenant exactement où rediriger
+                emailRedirectTo: `${origin}/auth/callback`,
             },
         });
+
         setLoading(false);
         if (error) {
             setMessage({
@@ -68,9 +77,11 @@ function LoginForm() {
             });
         }
     };
+
     return (
         <div className="max-w-md mx-auto mt-20 p-8 border border-[#B05F63] rounded-xl shadow-lg bg-white">
             <TitrePrincipal>Connexion Espace Client</TitrePrincipal>
+
             {/* Affichage des messages (Erreur, Succès, Info) */}
             {message && (
                 <div className={`mb-6 p-4 rounded-lg flex items-start gap-3 text-sm ${message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
@@ -82,6 +93,7 @@ function LoginForm() {
                     <p>{message.text}</p>
                 </div>
             )}
+
             <form onSubmit={handleLogin} className="space-y-4">
                 <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -111,6 +123,7 @@ function LoginForm() {
         </div>
     );
 }
+
 // Page principale qui enveloppe le formulaire dans Suspense (Requis par Next.js pour useSearchParams)
 export default function LoginPage() {
     return (
