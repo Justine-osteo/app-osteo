@@ -38,13 +38,14 @@ export async function middleware(request: NextRequest) {
   );
 
   // 3. On récupère l'utilisateur connecté
+  // Note : getUser() valide le token côté serveur. Si le token est périmé, user sera null.
   const { data: { user } } = await supabase.auth.getUser();
 
   // --- TES RÈGLES ---
 
-  // RÈGLE 1 : Si PAS connecté
+  // RÈGLE 1 : Si PAS connecté (user est null)
   if (!user) {
-    // Si on essaie d'aller ailleurs que sur la page de connexion, l'auth ou l'accueil (qui a son chargement)
+    // Si on essaie d'aller ailleurs que sur la page de connexion, l'auth ou l'accueil
     if (
       !request.nextUrl.pathname.startsWith('/connexion') &&
       !request.nextUrl.pathname.startsWith('/auth') &&
@@ -56,8 +57,10 @@ export async function middleware(request: NextRequest) {
 
   // RÈGLE 2 : Si CONNECTÉ
   if (user) {
-    // Vérification du rôle admin (correspond à raw_user_meta_data -> role: "admin")
-    const isAdmin = user.user_metadata?.role === 'admin';
+    // Vérification du rôle admin : On regarde dans user_metadata ET app_metadata pour être sûr
+    const isAdmin =
+      user.user_metadata?.role === 'admin' ||
+      user.app_metadata?.role === 'admin';
 
     // Protection de la route /admin
     if (request.nextUrl.pathname.startsWith('/admin') && !isAdmin) {
