@@ -1,9 +1,9 @@
-
 import './globals.css';
 import { Open_Sans, Charm } from 'next/font/google';
 import type { Metadata } from 'next';
 import SWRProvider from '@/components/SWRProvider';
 import { SupabaseProvider } from './supabase-provider';
+import AuthProvider from './auth-provider'; // <--- 1. Import du composant qu'on vient de créer
 
 const openSans = Open_Sans({
   subsets: ['latin'],
@@ -32,9 +32,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="fr" suppressHydrationWarning>
       <body className={`${openSans.variable} ${charm.variable} min-h-screen`}>
         <SupabaseProvider>
-          <SWRProvider>
-            {children}
-          </SWRProvider>
+          {/* 2. On enveloppe le reste de l'app avec l'AuthProvider */}
+          <AuthProvider>
+            <SWRProvider>
+              {children}
+            </SWRProvider>
+          </AuthProvider>
         </SupabaseProvider>
       </body>
     </html>
