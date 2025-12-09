@@ -1,18 +1,15 @@
-import './polyfill' // On garde le vaccin pour éviter le crash technique
-
+import './polyfill'
 import { NextRequest, NextResponse } from "next/server"
 
-// 🛑 MODE TEST : On laisse tout passer pour vérifier si les pages existent
 export async function middleware(request: NextRequest) {
-
-  console.log(`[TEST ROUTING] Requête reçue pour : ${request.nextUrl.pathname}`);
-
-  // On NE FAIT RIEN. Pas de Supabase. Pas de redirection.
-  // On laisse juste Next.js afficher la page demandée.
+  console.log(`[TEST] Requête: ${request.nextUrl.pathname}`);
   return NextResponse.next();
 }
 
 export const config = {
-  // On écoute tout
-  matcher: ["/:path*"],
+  // CRUCIAL : On exclut les fichiers internes (_next), les images, les favicons, etc.
+  // Sinon, Next.js ne peut pas charger ses propres scripts et renvoie 404 ou plante.
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)$).*)',
+  ],
 }
