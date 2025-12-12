@@ -121,7 +121,7 @@ export default function ListeAnimauxClient({
                                         {/* Badge Sexe */}
                                         {animal.sexe && (
                                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${animal.sexe === 'M' ? 'bg-blue-100 text-blue-700' :
-                                                    animal.sexe === 'F' ? 'bg-pink-100 text-pink-700' : 'bg-gray-100 text-gray-600'
+                                                animal.sexe === 'F' ? 'bg-pink-100 text-pink-700' : 'bg-gray-100 text-gray-600'
                                                 }`}>
                                                 {animal.sexe === 'M' ? '♂ Mâle' : animal.sexe === 'F' ? '♀ Femelle' : animal.sexe}
                                             </span>
@@ -138,16 +138,6 @@ export default function ListeAnimauxClient({
                                         <span>Né(e) le : {formatDate(animal.date_naissance)}</span>
                                     </div>
 
-                                    {/* AJOUT : Antécédents COMPLETS */}
-                                    {animal.antecedents && (
-                                        <div className="flex items-start text-sm text-gray-700 mt-2 bg-red-50 p-3 rounded-md border border-red-100">
-                                            <FileText className="w-4 h-4 mr-2 mt-0.5 text-[#B05F63] shrink-0" />
-                                            {/* whitespace-pre-wrap permet de conserver les sauts de ligne */}
-                                            <span className="italic whitespace-pre-wrap">
-                                                {animal.antecedents}
-                                            </span>
-                                        </div>
-                                    )}
                                 </div>
 
                                 {/* 3. Informations Propriétaire (Aligné à droite sur desktop) */}
