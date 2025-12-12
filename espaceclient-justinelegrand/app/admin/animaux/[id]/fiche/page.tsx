@@ -6,13 +6,14 @@ import Link from 'next/link'
 import { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
 
-// Cette page est un composant serveur
-export default async function FicheAnimalPage({ params }: { params: { id: string } }) {
-    // 1. On initialise et on force le typage du client immédiatement
-    // Cela évite d'avoir à mettre des 'as any' sur chaque requête plus bas
+// MODIFICATION : params est une Promise dans les versions récentes de Next.js
+export default async function FicheAnimalPage({ params }: { params: Promise<{ id: string }> }) {
+    // 1. On attend que les paramètres soient résolus
+    const { id: animalId } = await params
+
     const supabase = (await createServerSupabase()) as unknown as SupabaseClient<Database>
 
-    const { id: animalId } = params
+    console.log(`🔍 [ADMIN] Recherche animal ID: ${animalId}`)
 
     // 2. Récupérer les détails de l'animal
     const { data: animal, error: animalError } = await supabase
@@ -20,6 +21,10 @@ export default async function FicheAnimalPage({ params }: { params: { id: string
         .select('*, clients(*)')
         .eq('id', animalId)
         .single()
+
+    if (animalError) {
+        console.error("🔴 [ADMIN] Erreur récupération animal:", animalError.message)
+    }
 
     // 3. Récupérer l'historique complet des séances
     const { data: seances, error: seancesError } = await supabase
@@ -30,10 +35,13 @@ export default async function FicheAnimalPage({ params }: { params: { id: string
 
     if (animalError || !animal) {
         return (
-            <div className="p-6 text-center">
-                <p className="text-red-500">Impossible de trouver cet animal.</p>
-                <Link href="/admin/animaux" className="text-blue-600 hover:underline mt-4 inline-block">
-                    Retour à la liste des animaux
+            <div className="p-6 text-center max-w-2xl mx-auto mt-10 border border-red-200 rounded-lg bg-red-50">
+                <p className="text-red-600 font-bold text-lg mb-2">Impossible de trouver cet animal.</p>
+                <p className="text-sm text-gray-600 mb-4">
+                    Erreur technique : {animalError?.message || "Animal introuvable"}
+                </p>
+                <Link href="/admin/animaux" className="text-[#B05F63] hover:underline font-semibold">
+                    ← Retour à la liste des animaux
                 </Link>
             </div>
         )
