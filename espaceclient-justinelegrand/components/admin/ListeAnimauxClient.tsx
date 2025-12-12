@@ -81,7 +81,7 @@ export default function ListeAnimauxClient({
                             className="border p-4 rounded-lg bg-white shadow-sm hover:bg-[#FBEAEC] hover:shadow-md transition cursor-pointer"
                             // --- MODIFICATION APPLIQUÉE ICI ---
                             // On redirige vers la nouvelle page "fiche"
-                            onClick={() => router.push(`/admin/animaux/${animal.id}/fiche`)}
+                            onClick={() => router.push(`/admin/animaux/${animal.id}`)}
                         >
                             <div className="flex justify-between items-center">
                                 <div>
