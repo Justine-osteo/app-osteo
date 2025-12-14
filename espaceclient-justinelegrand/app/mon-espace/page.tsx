@@ -213,7 +213,8 @@ export default function EspaceClientPage() {
                                 fallback="Pas de photo"
                                 boutonTexte="Voir le dossier"
                                 onClick={() => router.push(`/mon-espace/avec-menu/animal/${animal.id}`)}
-                                className="h-[280px] bg-white border-2 border-[#F3D8DD] shadow-sm hover:shadow-md hover:border-[#B05F63] transition-all"
+                                // Modification ici : bg-[#FBEAEC] pour uniformiser la couleur de la carte (nom + zone bouton)
+                                className="h-[280px] bg-[#FBEAEC] border-2 border-[#F3D8DD] shadow-sm hover:shadow-md hover:border-[#B05F63] transition-all"
                             />
                         ))}
                     </div>
