@@ -10,7 +10,7 @@ import CarteItem from '@/components/CarteItem'
 import type { User } from '@supabase/supabase-js'
 import { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
-import { MapPin, Phone, Mail, LogOut, Edit3, FileText, Star } from 'lucide-react'
+import { MapPin, Phone, Mail, LogOut, Edit3, FileText, Star, User as UserIcon } from 'lucide-react'
 
 // --- Interfaces ---
 interface Animal {
@@ -33,13 +33,13 @@ function EcranDeChargement({ animationData }: { animationData: any }) {
         <main
             style={{
                 height: '100vh',
-                backgroundColor: '#ffffff', // Fond blanc épuré
+                backgroundColor: '#FFF0F3',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
                 gap: '2rem',
-                color: '#4B5563', // Gris foncé
+                color: '#6E4B42', // Brun chaud
                 fontFamily: 'Charm, cursive',
             }}
         >
@@ -55,8 +55,6 @@ export default function EspaceClientPage() {
     const [user, setUser] = useState<User | null>(null)
     const [animaux, setAnimaux] = useState<Animal[]>([])
     const [client, setClient] = useState<Client | null>(null)
-
-    // On gère un seul état de chargement global pour la page
     const [loading, setLoading] = useState(true)
     const [animationData, setAnimationData] = useState<any>(null)
     const router = useRouter()
@@ -125,63 +123,88 @@ export default function EspaceClientPage() {
         return <EcranDeChargement animationData={animationData} />
     }
 
-    return (
-        // Fond de page gris très léger pour faire ressortir les éléments blancs
-        <main className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen">
+    // Extraction du prénom pour l'accueil
+    const prenom = client?.nom ? client.nom.split(' ')[0] : '';
 
-            {/* Colonne latérale : Fond blanc, texte gris, bordure subtile */}
-            <aside className="w-full md:w-1/4 bg-white text-gray-600 rounded-xl p-6 space-y-4 shadow-sm border border-gray-200 h-fit">
-                <h2 className="text-xl font-charm mb-2 text-[#B05F63] font-bold">Mes informations</h2>
+    return (
+        // Fond principal : Rose très pâle chaleureux
+        <main className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto p-6 bg-[#FFF5F7] min-h-screen">
+
+            {/* Colonne latérale : Fond rose soutenu avec texte brun */}
+            <aside className="w-full md:w-1/4 bg-[#FBEAEC] text-[#6E4B42] rounded-2xl p-6 space-y-4 shadow-md h-fit border border-[#F3D8DD]">
+                <div className="flex flex-col items-center text-center mb-6">
+                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-[#B05F63] mb-3 shadow-sm border-2 border-white">
+                        <UserIcon className="w-10 h-10" />
+                    </div>
+                    <h2 className="text-xl font-charm mb-1 font-bold">Mes informations</h2>
+                    {client?.nom && (
+                        <p className="font-semibold text-lg">{client.nom}</p>
+                    )}
+                </div>
+
                 {client ? (
-                    <div className="text-sm space-y-2">
-                        <p className="font-semibold text-gray-800 text-lg">{client.nom}</p>
-                        <p className="flex items-center gap-2">
-                            <span className="text-[#B05F63] opacity-60">📍</span> {client.adresse || 'Adresse non renseignée'}
-                        </p>
-                        <p className="flex items-center gap-2">
-                            <span className="text-[#B05F63] opacity-60">📞</span> {client.telephone || 'Non renseigné'}
-                        </p>
-                        <p className="flex items-center gap-2">
-                            <span className="text-[#B05F63] opacity-60">✉️</span> {client.email}
-                        </p>
+                    <div className="text-sm space-y-3 bg-white/50 p-4 rounded-xl backdrop-blur-sm">
+                        <div className="flex items-start gap-3">
+                            <MapPin className="w-4 h-4 text-[#B05F63] mt-0.5 shrink-0" />
+                            <p>{client.adresse || 'Adresse non renseignée'}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <Phone className="w-4 h-4 text-[#B05F63] shrink-0" />
+                            <p>{client.telephone || 'Non renseigné'}</p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <Mail className="w-4 h-4 text-[#B05F63] mt-0.5 shrink-0" />
+                            <p className="break-all">{client.email}</p>
+                        </div>
                     </div>
                 ) : (
-                    <p className="text-sm text-gray-400">Informations client non trouvées.</p>
+                    <p className="text-sm text-gray-500 italic text-center">Profil incomplet.</p>
                 )}
 
-                {/* Bouton Modifier : Style Outline Rose */}
-                <button
-                    onClick={() => router.push('/mon-espace/modifier')}
-                    className="mt-6 w-full bg-white border border-[#B05F63] hover:bg-rose-50 text-[#B05F63] text-sm font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                    <Edit3 className="w-4 h-4" /> Modifier
-                </button>
+                {/* Boutons d'action */}
+                <div className="pt-4 space-y-3">
+                    <button
+                        onClick={() => router.push('/mon-espace/modifier')}
+                        className="w-full bg-white text-[#B05F63] hover:bg-[#B05F63] hover:text-white font-semibold py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm"
+                    >
+                        <Edit3 className="w-4 h-4" /> Modifier mes infos
+                    </button>
 
-                <hr className="border-t border-gray-200 my-4" />
-
-                {/* Bouton Déconnexion : Gris neutre */}
-                <button
-                    onClick={handleLogout}
-                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                    <LogOut className="w-4 h-4" /> Se déconnecter
-                </button>
+                    <button
+                        onClick={handleLogout}
+                        className="w-full bg-[#E5E7EB] hover:bg-[#6E4B42] hover:text-white text-gray-600 font-semibold py-2.5 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+                    >
+                        <LogOut className="w-4 h-4" /> Se déconnecter
+                    </button>
+                </div>
             </aside>
 
             {/* Contenu principal */}
             <div className="flex-1">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6 text-[#B05F63]">
-                    <TitrePrincipal>Bienvenue dans l'espace personnel</TitrePrincipal>
+                {/* Header : Fond blanc propre */}
+                <div className="bg-white p-8 rounded-2xl shadow-sm border border-[#F3D8DD] mb-8">
+                    {/* Conteneur pour le titre pour éviter le problème de className */}
+                    <div className="text-[#B05F63] mb-2">
+                        <TitrePrincipal>
+                            {prenom ? `Bonjour ${prenom} !` : 'Bienvenue dans votre espace'}
+                        </TitrePrincipal>
+                    </div>
+                    <p className="text-[#6E4B42] opacity-80 mt-2">
+                        Heureux de vous retrouver. Voici l'aperçu de vos compagnons.
+                    </p>
                 </div>
 
                 <section className="mt-6">
-                    <div className="mb-4 pl-1 text-gray-700">
+                    {/* Conteneur pour le sous-titre */}
+                    <div className="mb-4 pl-1 flex items-center gap-2 text-[#6E4B42]">
+                        <span className="w-2 h-6 bg-[#B05F63] rounded-full"></span>
                         <SousTitre>Mes animaux</SousTitre>
                     </div>
 
                     {animaux.length === 0 && (
-                        <div className="bg-white p-8 rounded-xl border border-dashed border-gray-300 text-center">
-                            <p className="text-gray-500">Aucun animal enregistré.</p>
+                        <div className="bg-white p-10 rounded-2xl border-2 border-dashed border-[#F3D8DD] text-center">
+                            <p className="text-[#6E4B42] text-lg mb-2">Aucun animal enregistré.</p>
+                            <p className="text-sm text-[#B05F63]">Ils apparaîtront ici après votre première consultation.</p>
                         </div>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -193,31 +216,37 @@ export default function EspaceClientPage() {
                                 fallback="Pas de photo"
                                 boutonTexte="Voir le dossier"
                                 onClick={() => router.push(`/mon-espace/avec-menu/animal/${animal.id}`)}
-                                className="h-[280px] bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                                className="h-[280px] bg-white border border-[#F3D8DD] shadow-sm hover:shadow-md hover:border-[#B05F63] transition-all"
                             />
                         ))}
                     </div>
                 </section>
 
                 <section className="mt-12">
-                    <div className="mb-4 pl-1 text-gray-700">
+                    <div className="mb-4 pl-1 flex items-center gap-2 text-[#6E4B42]">
+                        <span className="w-2 h-6 bg-[#B05F63] rounded-full"></span>
                         <SousTitre>Autres actions</SousTitre>
                     </div>
-                    {/* MODIFICATION : Boutons classiques (Style Rose & Gris) */}
+
+                    {/* MODIFICATION : Boutons classiques chaleureux au lieu de grandes cartes */}
                     <div className="flex flex-wrap gap-4">
                         <button
                             onClick={() => router.push('/mon-espace/avec-menu/factures')}
-                            className="flex items-center gap-3 bg-white border border-[#B05F63] text-[#B05F63] px-6 py-4 rounded-xl shadow-sm hover:bg-[#FFF0F3] transition-all font-semibold"
+                            className="flex items-center gap-3 bg-white border-2 border-[#F3D8DD] text-[#6E4B42] px-6 py-4 rounded-xl shadow-sm hover:bg-[#FFF0F3] hover:border-[#B05F63] hover:text-[#B05F63] transition-all font-semibold"
                         >
-                            <FileText className="w-5 h-5" />
+                            <div className="bg-[#FFF0F3] p-2 rounded-lg">
+                                <FileText className="w-5 h-5 text-[#B05F63]" />
+                            </div>
                             Consulter mes factures
                         </button>
 
                         <button
                             onClick={() => router.push('/mon-espace/avec-menu/avis')}
-                            className="flex items-center gap-3 bg-white border border-[#B05F63] text-[#B05F63] px-6 py-4 rounded-xl shadow-sm hover:bg-[#FFF0F3] transition-all font-semibold"
+                            className="flex items-center gap-3 bg-white border-2 border-[#F3D8DD] text-[#6E4B42] px-6 py-4 rounded-xl shadow-sm hover:bg-[#FFF0F3] hover:border-[#B05F63] hover:text-[#B05F63] transition-all font-semibold"
                         >
-                            <Star className="w-5 h-5" />
+                            <div className="bg-[#FFF0F3] p-2 rounded-lg">
+                                <Star className="w-5 h-5 text-[#B05F63]" />
+                            </div>
                             Laisser un avis
                         </button>
                     </div>
