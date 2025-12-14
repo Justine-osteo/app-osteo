@@ -15,12 +15,16 @@ export default function CarteItem({ titre, boutonTexte, onClick, imageUrl, fallb
     return (
         <div
             onClick={onClick}
-            className={className} // Permet de recevoir les styles de la page parente (taille, bordure...)
+            className={className} // Permet de recevoir les styles de la page parente
             style={{
                 backgroundColor: '#FAEEF0',
                 borderRadius: 12,
-                // On utilise min-height plutôt que height fixe pour la flexibilité
+                // Dimensions ajustées pour éviter l'effet "trop large"
                 minHeight: 240,
+                width: '100%',
+                maxWidth: 220, // On limite la largeur pour garder un format carte élégant
+                margin: '0 auto', // On centre la carte dans la grille
+
                 boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
                 overflow: 'hidden',
                 display: 'flex',
@@ -41,10 +45,10 @@ export default function CarteItem({ titre, boutonTexte, onClick, imageUrl, fallb
             <div style={{
                 textAlign: 'center',
                 padding: '8px 4px',
-                fontSize: '1.5rem',
+                fontSize: '1.3rem', // Légèrement réduit pour s'adapter à la largeur
                 fontWeight: 'bold',
                 color: 'white',
-                backgroundColor: '#B05F63' // Changement de couleur ici
+                backgroundColor: '#B05F63'
             }}>
                 {titre}
             </div>
