@@ -189,9 +189,6 @@ export default function EspaceClientPage() {
                             {prenom ? `Bonjour ${prenom} !` : 'Bienvenue dans votre espace'}
                         </TitrePrincipal>
                     </div>
-                    <p className="text-[#6E4B42] opacity-80 mt-2">
-                        Heureux de vous retrouver. Voici l'aperçu de vos compagnons.
-                    </p>
                 </div>
 
                 <section className="mt-6">
