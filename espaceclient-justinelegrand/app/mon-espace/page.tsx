@@ -131,7 +131,7 @@ export default function EspaceClientPage() {
         <main className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto p-6 bg-[#FCEFF2] min-h-screen">
 
             {/* Colonne latérale : Fond rose soutenu avec texte brun */}
-            <aside className="w-full md:w-1/4 bg-[#FBEAEC] text-[#6E4B42] rounded-2xl p-6 space-y-4 shadow-md h-fit border border-[#F3D8DD]">
+            <aside className="w-full md:w-1/4 bg-[#FBEAEC] text-[#6E4B42] rounded-2xl p-6 space-y-4 shadow-md h-fit border-2 border-[#F3D8DD]">
                 <div className="flex flex-col items-center text-center mb-6">
                     <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-[#B05F63] mb-3 shadow-sm border-2 border-white">
                         <UserIcon className="w-10 h-10" />
@@ -182,7 +182,7 @@ export default function EspaceClientPage() {
             {/* Contenu principal */}
             <div className="flex-1">
                 {/* Header : Fond blanc propre */}
-                <div className="bg-white p-8 rounded-2xl shadow-sm border border-[#F3D8DD] mb-8">
+                <div className="bg-white p-8 rounded-2xl shadow-sm border-2 border-[#F3D8DD] mb-8">
                     {/* Conteneur pour le titre pour éviter le problème de className */}
                     <div className="text-[#B05F63] mb-2">
                         <TitrePrincipal>
@@ -204,7 +204,7 @@ export default function EspaceClientPage() {
                             <p className="text-sm text-[#B05F63]">Ils apparaîtront ici après votre première consultation.</p>
                         </div>
                     )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6]">
                         {animaux.map((animal) => (
                             <CarteItem
                                 key={animal.id}
@@ -213,7 +213,7 @@ export default function EspaceClientPage() {
                                 fallback="Pas de photo"
                                 boutonTexte="Voir le dossier"
                                 onClick={() => router.push(`/mon-espace/avec-menu/animal/${animal.id}`)}
-                                className="h-[280px] bg-white border border-[#F3D8DD] shadow-sm hover:shadow-md hover:border-[#B05F63] transition-all"
+                                className="h-[280px] bg-white border-2 border-[#F3D8DD] shadow-sm hover:shadow-md hover:border-[#B05F63] transition-all"
                             />
                         ))}
                     </div>
