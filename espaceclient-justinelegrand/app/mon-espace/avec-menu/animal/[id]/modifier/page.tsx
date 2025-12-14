@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import TitrePrincipal from '@/components/ui/TitrePrincipal'
 import EcranDeChargement from '@/components/ui/EcranDeChargement'
-import { ArrowLeft, Upload, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Upload, CheckCircle, AlertCircle } from 'lucide-react'
 import { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
 
@@ -31,6 +31,10 @@ export default function ModifierFicheAnimalPage() {
     const [antecedents, setAntecedents] = useState('')
     const [photoUrl, setPhotoUrl] = useState<string | null>(null)
 
+    // État pour savoir si l'utilisateur a modifié la photo manuellement
+    // Cela empêche la BDD d'écraser la nouvelle photo si le composant se rafraîchit
+    const [photoDirty, setPhotoDirty] = useState(false)
+
     // --- États de l'interface ---
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -38,7 +42,6 @@ export default function ModifierFicheAnimalPage() {
     const [error, setError] = useState<string | null>(null)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-    // Casting du client (attention à ne pas l'utiliser dans les dépendances useEffect)
     const supabaseTyped = supabase as unknown as SupabaseClient<Database>
 
     useEffect(() => {
@@ -50,7 +53,7 @@ export default function ModifierFicheAnimalPage() {
 
         const fetchAnimal = async () => {
             setLoading(true)
-            console.log("📥 Chargement des données initiales...")
+            console.log("📥 [FETCH] Chargement des données depuis la BDD...")
 
             const { data, error } = await supabaseTyped
                 .from('animaux')
@@ -70,14 +73,21 @@ export default function ModifierFicheAnimalPage() {
                 setPoids(data.poids ?? '')
                 setActivite(data.activite ?? '')
                 setAntecedents(data.antecedents ?? '')
-                setPhotoUrl(data.photo_url ?? null)
+
+                // SÉCURITÉ : On n'écrase la photo avec celle de la BDD que si 
+                // l'utilisateur n'a pas déjà uploadé une nouvelle photo (photoDirty)
+                if (!photoDirty) {
+                    setPhotoUrl(data.photo_url ?? null)
+                    console.log("🔄 [FETCH] Photo initialisée depuis BDD :", data.photo_url)
+                } else {
+                    console.log("🛡️ [FETCH] Photo BDD ignorée car l'utilisateur a déjà uploadé une image.")
+                }
             }
             setLoading(false)
         }
 
         fetchAnimal()
-        // CORRECTION IMPORTANTE : On retire 'supabaseTyped' des dépendances pour éviter le re-fetch infini
-        // On garde uniquement 'id' qui est stable.
+        // Dépendance unique sur ID pour éviter les boucles
     }, [id])
 
     const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,34 +97,31 @@ export default function ModifierFicheAnimalPage() {
         setUploading(true)
         setError(null)
 
-        // Nom de fichier unique
         const fileExt = file.name.split('.').pop()
         const fileName = `${id}/${Date.now()}.${fileExt}`
 
-        console.log("📤 Début upload vers bucket 'photosanimaux':", fileName)
+        console.log("📤 [UPLOAD] Début upload vers 'photosanimaux':", fileName)
 
         const { error: uploadError } = await supabase.storage
-            .from('photosanimaux') // Assure-toi que ce bucket existe et est public
-            .upload(fileName, file, {
-                upsert: true,
-            })
+            .from('photosanimaux')
+            .upload(fileName, file, { upsert: true })
 
         if (uploadError) {
-            console.error("Erreur upload:", uploadError)
+            console.error("❌ [UPLOAD] Erreur:", uploadError)
             setError(`Erreur lors de l’upload: ${uploadError.message}`)
             setUploading(false)
             return
         }
 
-        // Récupération URL publique
         const { data } = supabase.storage
             .from('photosanimaux')
             .getPublicUrl(fileName)
 
-        console.log("🔗 URL générée:", data?.publicUrl)
+        console.log("🔗 [UPLOAD] URL générée avec succès:", data?.publicUrl)
 
         if (data?.publicUrl) {
             setPhotoUrl(data.publicUrl)
+            setPhotoDirty(true) // Marque la photo comme "modifiée par l'utilisateur"
         }
 
         setUploading(false)
@@ -126,7 +133,7 @@ export default function ModifierFicheAnimalPage() {
         setError(null)
         setSuccessMessage(null)
 
-        console.log("💾 Envoi de la modification. Photo URL:", photoUrl)
+        console.log("💾 [SUBMIT] Envoi des données. URL Photo finale :", photoUrl)
 
         const { data: { user } } = await supabase.auth.getUser()
 
@@ -160,7 +167,7 @@ export default function ModifierFicheAnimalPage() {
                 poids: poids === '' ? null : poids,
                 activite,
                 antecedents,
-                photo_url: photoUrl, // On s'assure que c'est bien l'URL mise à jour
+                photo_url: photoUrl,
             },
         }
 
@@ -174,10 +181,7 @@ export default function ModifierFicheAnimalPage() {
             console.error("Erreur insertion:", insertError)
             setError(`Erreur lors de l’envoi: ${insertError.message}`)
         } else {
-            setSuccessMessage(
-                'Modification envoyée ! Elle sera examinée par votre ostéopathe.'
-            )
-            // Délai un peu plus long pour lire le message
+            setSuccessMessage('Modification envoyée ! Elle sera examinée par votre ostéopathe.')
             setTimeout(() => {
                 router.push(`/mon-espace/avec-menu/animal/${id}`)
             }, 3000)
@@ -205,89 +209,48 @@ export default function ModifierFicheAnimalPage() {
 
                 <div>
                     <label className="block font-semibold text-[#6E4B42] mb-1">Nom</label>
-                    <input
-                        type="text"
-                        value={nom}
-                        onChange={(e) => setNom(e.target.value)}
-                        required
-                        className="w-full p-2 border border-[#B05F63] rounded"
-                    />
+                    <input type="text" value={nom} onChange={(e) => setNom(e.target.value)} required className="w-full p-2 border border-[#B05F63] rounded" />
                 </div>
 
-                <div>
-                    <label className="block font-semibold text-[#6E4B42] mb-1">Date de naissance</label>
-                    <input
-                        type="date"
-                        value={dateNaissance}
-                        onChange={(e) => setDateNaissance(e.target.value)}
-                        className="w-full p-2 border border-[#B05F63] rounded"
-                    />
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block font-semibold text-[#6E4B42] mb-1">Date de naissance</label>
+                        <input type="date" value={dateNaissance} onChange={(e) => setDateNaissance(e.target.value)} className="w-full p-2 border border-[#B05F63] rounded" />
+                    </div>
+                    <div>
+                        <label className="block font-semibold text-[#6E4B42] mb-1">Sexe</label>
+                        <select value={sexe} onChange={(e) => setSexe(e.target.value)} className="w-full p-2 border border-[#B05F63] rounded">
+                            <option value="">-- Sélectionnez --</option>
+                            <option value="mâle">Mâle</option>
+                            <option value="femelle">Femelle</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label className="block font-semibold text-[#6E4B42] mb-1">Race</label>
-                    <input
-                        type="text"
-                        value={race}
-                        onChange={(e) => setRace(e.target.value)}
-                        className="w-full p-2 border border-[#B05F63] rounded"
-                    />
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block font-semibold text-[#6E4B42] mb-1">Race</label>
+                        <input type="text" value={race} onChange={(e) => setRace(e.target.value)} className="w-full p-2 border border-[#B05F63] rounded" />
+                    </div>
+                    <div>
+                        <label className="block font-semibold text-[#6E4B42] mb-1">Poids (kg)</label>
+                        <input type="number" step="0.1" min="0" value={poids} onChange={(e) => { const value = e.target.value; setPoids(value === '' ? '' : Number(value)) }} className="w-full p-2 border border-[#B05F63] rounded" />
+                    </div>
                 </div>
-                <div>
-                    <label className="block font-semibold text-[#6E4B42] mb-1">Sexe</label>
-                    <select
-                        value={sexe}
-                        onChange={(e) => setSexe(e.target.value)}
-                        className="w-full p-2 border border-[#B05F63] rounded"
-                    >
-                        <option value="">-- Sélectionnez --</option>
-                        <option value="mâle">Mâle</option>
-                        <option value="femelle">Femelle</option>
-                    </select>
-                </div>
+
                 <div className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        checked={sterilise}
-                        onChange={(e) => setSterilise(e.target.checked)}
-                        className="h-5 w-5 accent-[#B05F63]"
-                        id="sterilise-checkbox"
-                    />
+                    <input type="checkbox" checked={sterilise} onChange={(e) => setSterilise(e.target.checked)} className="h-5 w-5 accent-[#B05F63]" id="sterilise-checkbox" />
                     <label htmlFor="sterilise-checkbox" className="font-semibold text-[#6E4B42]">Stérilisé</label>
-                </div>
-                <div>
-                    <label className="block font-semibold text-[#6E4B42] mb-1">Poids (kg)</label>
-                    <input
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={poids}
-                        onChange={(e) => {
-                            const value = e.target.value
-                            setPoids(value === '' ? '' : Number(value))
-                        }}
-                        className="w-full p-2 border border-[#B05F63] rounded"
-                    />
                 </div>
 
                 <div>
                     <label className="block font-semibold text-[#6E4B42] mb-1">Activité</label>
-                    <textarea
-                        value={activite}
-                        onChange={(e) => setActivite(e.target.value)}
-                        className="w-full p-2 border border-[#B05F63] rounded"
-                        placeholder="Ex: Sportif, promenades quotidiennes, vit en appartement..."
-                        rows={2}
-                    />
+                    <textarea value={activite} onChange={(e) => setActivite(e.target.value)} className="w-full p-2 border border-[#B05F63] rounded" placeholder="Ex: Sportif, promenades quotidiennes..." rows={2} />
                 </div>
 
                 <div>
                     <label className="block font-semibold text-[#6E4B42] mb-1">Antécédents</label>
-                    <textarea
-                        value={antecedents}
-                        onChange={(e) => setAntecedents(e.target.value)}
-                        className="w-full p-2 border border-[#B05F63] rounded"
-                        rows={3}
-                    />
+                    <textarea value={antecedents} onChange={(e) => setAntecedents(e.target.value)} className="w-full p-2 border border-[#B05F63] rounded" rows={3} />
                 </div>
 
                 {/* Section Photo Améliorée */}
@@ -296,9 +259,16 @@ export default function ModifierFicheAnimalPage() {
 
                     <div className="flex items-start gap-4">
                         {/* Prévisualisation */}
-                        <div className="shrink-0">
+                        <div className="shrink-0 flex flex-col items-center gap-2">
                             {photoUrl ? (
-                                <img src={photoUrl} alt="Aperçu" className="h-24 w-24 object-cover rounded-lg shadow-sm border border-gray-200" />
+                                <>
+                                    <img src={photoUrl} alt="Aperçu" className="h-24 w-24 object-cover rounded-lg shadow-sm border border-gray-200" />
+                                    {photoDirty && (
+                                        <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                                            Nouvelle
+                                        </span>
+                                    )}
+                                </>
                             ) : (
                                 <div className="h-24 w-24 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 border border-dashed border-gray-300">
                                     <span className="text-xs text-center px-1">Aucune photo</span>
@@ -308,9 +278,12 @@ export default function ModifierFicheAnimalPage() {
 
                         {/* Input */}
                         <div className="flex-1">
-                            <label className="cursor-pointer inline-flex items-center gap-2 bg-white border border-[#B05F63] text-[#B05F63] px-4 py-2 rounded hover:bg-[#FBEAEC] transition font-medium text-sm">
+                            <label className={`cursor-pointer inline-flex items-center gap-2 border px-4 py-2 rounded transition font-medium text-sm ${uploading
+                                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                    : 'bg-white border-[#B05F63] text-[#B05F63] hover:bg-[#FBEAEC]'
+                                }`}>
                                 <Upload className="w-4 h-4" />
-                                {uploading ? 'Chargement...' : 'Choisir une photo'}
+                                {uploading ? 'Chargement en cours...' : 'Choisir une photo'}
                                 <input
                                     type="file"
                                     accept="image/*"
@@ -319,8 +292,17 @@ export default function ModifierFicheAnimalPage() {
                                     disabled={uploading}
                                 />
                             </label>
+
+                            {/* Confirmation visuelle pour le testeur */}
+                            {photoUrl && photoDirty && !uploading && (
+                                <p className="text-sm text-green-600 mt-2 flex items-center gap-1 font-medium animate-pulse">
+                                    <CheckCircle className="w-4 h-4" />
+                                    Photo chargée et prête à l'envoi !
+                                </p>
+                            )}
+
                             <p className="text-xs text-gray-500 mt-2">
-                                Formats acceptés : JPG, PNG. La photo s'affichera à gauche une fois chargée.
+                                Formats acceptés : JPG, PNG.
                             </p>
                         </div>
                     </div>
@@ -329,7 +311,7 @@ export default function ModifierFicheAnimalPage() {
                 <div className="flex justify-end items-center pt-4">
                     <button
                         type="submit"
-                        className="bg-[#B05F63] text-white font-semibold px-6 py-3 rounded hover:bg-[#6E4B42] disabled:bg-gray-400 transition shadow-sm"
+                        className="bg-[#B05F63] text-white font-semibold px-6 py-3 rounded hover:bg-[#6E4B42] disabled:bg-gray-400 transition shadow-sm flex items-center gap-2"
                         disabled={saving || uploading}
                     >
                         {saving ? 'Envoi en cours...' : 'Envoyer pour validation'}
