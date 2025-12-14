@@ -155,18 +155,48 @@ export default function ValidationsPage() {
                                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
                                     Données proposées
                                 </p>
-                                <ul className="space-y-1">
-                                    {Object.entries(mod.donnees).map(([key, value]) => (
-                                        <li key={key} className="text-sm flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                            <span className="font-medium text-gray-700 capitalize w-32 shrink-0">
-                                                {key.replace('_', ' ')}
-                                            </span>
-                                            <span className="hidden sm:inline text-gray-400">→</span>
-                                            <span className="text-[#B05F63] font-semibold break-all">
-                                                {String(value)}
-                                            </span>
-                                        </li>
-                                    ))}
+                                <ul className="space-y-2">
+                                    {Object.entries(mod.donnees).map(([key, value]) => {
+                                        // GESTION SPÉCIFIQUE POUR L'AFFICHAGE DES PHOTOS
+                                        if (key === 'photo_url' || key === 'photo') {
+                                            return (
+                                                <li key={key} className="text-sm flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                                                    <span className="font-medium text-gray-700 capitalize w-32 shrink-0 pt-1">
+                                                        {key.replace('_', ' ')}
+                                                    </span>
+                                                    <span className="hidden sm:inline text-gray-400 pt-1">→</span>
+                                                    <div className="flex-1">
+                                                        {value ? (
+                                                            <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
+                                                                <img
+                                                                    src={String(value)}
+                                                                    alt="Nouvelle photo"
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-400 italic bg-gray-50 px-2 py-1 rounded border border-dashed">
+                                                                (Problème : valeur null reçue)
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </li>
+                                            )
+                                        }
+
+                                        // AFFICHAGE STANDARD
+                                        return (
+                                            <li key={key} className="text-sm flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                                <span className="font-medium text-gray-700 capitalize w-32 shrink-0">
+                                                    {key.replace('_', ' ')}
+                                                </span>
+                                                <span className="hidden sm:inline text-gray-400">→</span>
+                                                <span className="text-[#B05F63] font-semibold break-all">
+                                                    {String(value)}
+                                                </span>
+                                            </li>
+                                        )
+                                    })}
                                 </ul>
                             </div>
                         </div>

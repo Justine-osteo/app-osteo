@@ -5,11 +5,10 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import TitrePrincipal from '@/components/ui/TitrePrincipal'
 import EcranDeChargement from '@/components/ui/EcranDeChargement'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Upload, CheckCircle } from 'lucide-react'
 import { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
 
-// On utilise les types générés
 type ModificationAnimauxInsert = Database['public']['Tables']['modifications_animaux']['Insert']
 
 export default function ModifierFicheAnimalPage() {
@@ -39,7 +38,7 @@ export default function ModifierFicheAnimalPage() {
     const [error, setError] = useState<string | null>(null)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-    // CORRECTION ICI : Double casting (as unknown as ...) pour forcer le typage
+    // Casting du client (attention à ne pas l'utiliser dans les dépendances useEffect)
     const supabaseTyped = supabase as unknown as SupabaseClient<Database>
 
     useEffect(() => {
@@ -51,17 +50,16 @@ export default function ModifierFicheAnimalPage() {
 
         const fetchAnimal = async () => {
             setLoading(true)
+            console.log("📥 Chargement des données initiales...")
 
-            // On utilise le client typé
             const { data, error } = await supabaseTyped
                 .from('animaux')
-                .select(
-                    'nom, race, date_naissance, sexe, sterilise, poids, activite, antecedents, photo_url'
-                )
+                .select('nom, race, date_naissance, sexe, sterilise, poids, activite, antecedents, photo_url')
                 .eq('id', id)
                 .single()
 
             if (error || !data) {
+                console.error("Erreur fetch:", error)
                 setError('Impossible de charger les informations de l’animal.')
             } else {
                 setNom(data.nom)
@@ -78,7 +76,9 @@ export default function ModifierFicheAnimalPage() {
         }
 
         fetchAnimal()
-    }, [id, supabaseTyped]) // Ajout de supabaseTyped aux dépendances
+        // CORRECTION IMPORTANTE : On retire 'supabaseTyped' des dépendances pour éviter le re-fetch infini
+        // On garde uniquement 'id' qui est stable.
+    }, [id])
 
     const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -86,24 +86,37 @@ export default function ModifierFicheAnimalPage() {
 
         setUploading(true)
         setError(null)
-        const filePath = `${id}/${Date.now()}_${file.name}`
+
+        // Nom de fichier unique
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${id}/${Date.now()}.${fileExt}`
+
+        console.log("📤 Début upload vers bucket 'photosanimaux':", fileName)
 
         const { error: uploadError } = await supabase.storage
-            .from('photosanimaux')
-            .upload(filePath, file, {
+            .from('photosanimaux') // Assure-toi que ce bucket existe et est public
+            .upload(fileName, file, {
                 upsert: true,
             })
 
         if (uploadError) {
-            setError('Erreur lors de l’upload de la photo.')
+            console.error("Erreur upload:", uploadError)
+            setError(`Erreur lors de l’upload: ${uploadError.message}`)
             setUploading(false)
             return
         }
 
+        // Récupération URL publique
         const { data } = supabase.storage
             .from('photosanimaux')
-            .getPublicUrl(filePath)
-        setPhotoUrl(data?.publicUrl ?? null)
+            .getPublicUrl(fileName)
+
+        console.log("🔗 URL générée:", data?.publicUrl)
+
+        if (data?.publicUrl) {
+            setPhotoUrl(data.publicUrl)
+        }
+
         setUploading(false)
     }
 
@@ -112,6 +125,8 @@ export default function ModifierFicheAnimalPage() {
         setSaving(true)
         setError(null)
         setSuccessMessage(null)
+
+        console.log("💾 Envoi de la modification. Photo URL:", photoUrl)
 
         const { data: { user } } = await supabase.auth.getUser()
 
@@ -145,7 +160,7 @@ export default function ModifierFicheAnimalPage() {
                 poids: poids === '' ? null : poids,
                 activite,
                 antecedents,
-                photo_url: photoUrl,
+                photo_url: photoUrl, // On s'assure que c'est bien l'URL mise à jour
             },
         }
 
@@ -156,14 +171,16 @@ export default function ModifierFicheAnimalPage() {
         setSaving(false)
 
         if (insertError) {
+            console.error("Erreur insertion:", insertError)
             setError(`Erreur lors de l’envoi: ${insertError.message}`)
         } else {
             setSuccessMessage(
                 'Modification envoyée ! Elle sera examinée par votre ostéopathe.'
             )
+            // Délai un peu plus long pour lire le message
             setTimeout(() => {
                 router.push(`/mon-espace/avec-menu/animal/${id}`)
-            }, 2500)
+            }, 3000)
         }
     }
 
@@ -183,8 +200,8 @@ export default function ModifierFicheAnimalPage() {
             <TitrePrincipal>Modifier la fiche de {nom}</TitrePrincipal>
 
             <form onSubmit={handleSubmit} className="bg-[#FBEAEC] p-6 rounded shadow space-y-4 mt-4">
-                {error && <p className="bg-red-200 text-red-800 p-3 rounded">{error}</p>}
-                {successMessage && <p className="bg-green-200 text-green-800 p-3 rounded">{successMessage}</p>}
+                {error && <p className="bg-red-200 text-red-800 p-3 rounded flex items-center gap-2">⚠️ {error}</p>}
+                {successMessage && <p className="bg-green-200 text-green-800 p-3 rounded flex items-center gap-2"><CheckCircle className="w-5 h-5" /> {successMessage}</p>}
 
                 <div>
                     <label className="block font-semibold text-[#6E4B42] mb-1">Nom</label>
@@ -272,27 +289,47 @@ export default function ModifierFicheAnimalPage() {
                         rows={3}
                     />
                 </div>
-                <div>
-                    <label className="block font-semibold text-[#6E4B42] mb-1">Photo de l’animal</label>
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleUploadPhoto}
-                        className="w-full p-2 border border-[#B05F63] rounded bg-white"
-                        disabled={uploading}
-                    />
-                    {uploading && <p className="text-sm text-gray-600 mt-1">Chargement de l'image...</p>}
-                    {photoUrl && (
-                        <div className="mt-2">
-                            <img src={photoUrl} alt="Photo de l’animal" className="h-32 rounded shadow" />
+
+                {/* Section Photo Améliorée */}
+                <div className="bg-white p-4 rounded border border-[#dcb0b6]">
+                    <label className="block font-semibold text-[#6E4B42] mb-2">Photo de l’animal</label>
+
+                    <div className="flex items-start gap-4">
+                        {/* Prévisualisation */}
+                        <div className="shrink-0">
+                            {photoUrl ? (
+                                <img src={photoUrl} alt="Aperçu" className="h-24 w-24 object-cover rounded-lg shadow-sm border border-gray-200" />
+                            ) : (
+                                <div className="h-24 w-24 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 border border-dashed border-gray-300">
+                                    <span className="text-xs text-center px-1">Aucune photo</span>
+                                </div>
+                            )}
                         </div>
-                    )}
+
+                        {/* Input */}
+                        <div className="flex-1">
+                            <label className="cursor-pointer inline-flex items-center gap-2 bg-white border border-[#B05F63] text-[#B05F63] px-4 py-2 rounded hover:bg-[#FBEAEC] transition font-medium text-sm">
+                                <Upload className="w-4 h-4" />
+                                {uploading ? 'Chargement...' : 'Choisir une photo'}
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleUploadPhoto}
+                                    className="hidden"
+                                    disabled={uploading}
+                                />
+                            </label>
+                            <p className="text-xs text-gray-500 mt-2">
+                                Formats acceptés : JPG, PNG. La photo s'affichera à gauche une fois chargée.
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="flex justify-end items-center">
+                <div className="flex justify-end items-center pt-4">
                     <button
                         type="submit"
-                        className="bg-[#B05F63] text-white font-semibold px-4 py-2 rounded hover:bg-[#6E4B42] disabled:bg-gray-400"
+                        className="bg-[#B05F63] text-white font-semibold px-6 py-3 rounded hover:bg-[#6E4B42] disabled:bg-gray-400 transition shadow-sm"
                         disabled={saving || uploading}
                     >
                         {saving ? 'Envoi en cours...' : 'Envoyer pour validation'}
