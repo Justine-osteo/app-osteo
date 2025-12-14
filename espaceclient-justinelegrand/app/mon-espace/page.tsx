@@ -128,7 +128,7 @@ export default function EspaceClientPage() {
 
     return (
         // Fond principal : Rose très pâle chaleureux
-        <main className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto p-6 bg-[#FBEAEC] min-h-screen">
+        <main className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto p-6 bg-[#FCEFF2] min-h-screen">
 
             {/* Colonne latérale : Fond rose soutenu avec texte brun */}
             <aside className="w-full md:w-1/4 bg-[#FBEAEC] text-[#6E4B42] rounded-2xl p-6 space-y-4 shadow-md h-fit border border-[#F3D8DD]">
