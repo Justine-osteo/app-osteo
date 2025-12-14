@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase/client'
 import EcranDeChargement from '@/components/ui/EcranDeChargement'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { RefreshCcw, Check, X, AlertCircle } from 'lucide-react'
 
 type Modification = {
     id: string;
@@ -21,29 +22,35 @@ export default function ValidationsPage() {
     const [error, setError] = useState<string | null>(null)
     const [processingId, setProcessingId] = useState<string | null>(null)
 
-    useEffect(() => {
-        const fetchModifications = async () => {
-            setLoading(true)
-            const { data, error } = await supabase
-                .from('modifications_animaux')
-                .select(`
-                    id,
-                    cree_le,
-                    donnees,
-                    animaux ( nom ),
-                    clients ( nom )
-                `)
-                .eq('statut', 'en_attente')
-                .order('cree_le', { ascending: true })
+    const fetchModifications = async () => {
+        setLoading(true)
+        setError(null)
+        console.log("🔄 Chargement des modifications...")
 
-            if (error) {
-                console.error(error)
-                setError("Impossible de charger les demandes de modification.")
-            } else {
-                setModifications(data as Modification[])
-            }
-            setLoading(false)
+        const { data, error } = await supabase
+            .from('modifications_animaux')
+            .select(`
+                id,
+                cree_le,
+                donnees,
+                animaux ( nom ),
+                clients ( nom )
+            `)
+            .eq('statut', 'en_attente')
+            .order('cree_le', { ascending: true })
+
+        if (error) {
+            console.error("🔴 Erreur Supabase :", error)
+            setError("Impossible de charger les demandes (Vérifiez les droits RLS).")
+        } else {
+            console.log("🟢 Données reçues :", data)
+            setModifications(data as Modification[])
         }
+        setLoading(false)
+    }
+
+    // Chargement initial
+    useEffect(() => {
         fetchModifications()
     }, [])
 
@@ -51,20 +58,28 @@ export default function ValidationsPage() {
         setProcessingId(modificationId)
         setError(null)
 
-        const response = await fetch('/api/validations', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ modificationId, action }),
-        })
+        try {
+            const response = await fetch('/api/validations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ modificationId, action }),
+            })
 
-        if (response.ok) {
-            // Si l'action réussit, on retire la modification de la liste dans l'interface
+            const result = await response.json()
+
+            if (!response.ok) {
+                throw new Error(result.error || "Erreur lors du traitement")
+            }
+
+            // Succès : on retire l'élément de la liste
             setModifications(prev => prev.filter(mod => mod.id !== modificationId))
-        } else {
-            const { error } = await response.json()
-            setError(error || "Une erreur est survenue lors du traitement de la demande.")
+
+        } catch (err: any) {
+            console.error("Erreur action :", err)
+            setError(err.message || "Une erreur est survenue.")
+        } finally {
+            setProcessingId(null)
         }
-        setProcessingId(null)
     }
 
     if (loading) {
@@ -73,47 +88,83 @@ export default function ValidationsPage() {
 
     return (
         <main className="p-6 max-w-4xl mx-auto">
-            <TitrePrincipal>Modifications en attente de validation</TitrePrincipal>
+            <div className="flex justify-between items-center mb-6">
+                <TitrePrincipal>Validations en attente</TitrePrincipal>
+                <button
+                    onClick={fetchModifications}
+                    className="p-2 text-[#B05F63] hover:bg-[#FBEAEC] rounded-full transition"
+                    title="Actualiser la liste"
+                >
+                    <RefreshCcw className="w-5 h-5" />
+                </button>
+            </div>
 
-            {error && <p className="text-red-600 bg-red-100 p-3 rounded my-4">{error}</p>}
+            {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center gap-3 mb-6">
+                    <AlertCircle className="w-5 h-5 shrink-0" />
+                    <p>{error}</p>
+                </div>
+            )}
 
             {modifications.length === 0 ? (
-                <p className="text-gray-600 mt-6 text-center">Aucune demande de modification en attente.</p>
+                <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                    <p className="text-gray-500 text-lg">Aucune modification en attente.</p>
+                    <p className="text-sm text-gray-400 mt-1">Tout est à jour ! 🎉</p>
+                </div>
             ) : (
-                <div className="space-y-4 mt-6">
+                <div className="space-y-4">
                     {modifications.map(mod => (
-                        <div key={mod.id} className="bg-white p-4 border rounded-lg shadow-sm">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="font-bold text-lg text-[#6E4B42]">{mod.animaux?.nom}</p>
-                                    <p className="text-sm text-gray-500">Propriétaire : {mod.clients?.nom}</p>
-                                    <p className="text-xs text-gray-400 mt-1">
+                        <div key={mod.id} className="bg-white p-5 border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition">
+                            <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+
+                                {/* Info En-tête */}
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-lg text-[#6E4B42]">
+                                        {mod.animaux?.nom || 'Animal inconnu'}
+                                    </h3>
+                                    <p className="text-sm text-gray-600">
+                                        Client : <span className="font-medium">{mod.clients?.nom || 'Inconnu'}</span>
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                                        <RefreshCcw className="w-3 h-3" />
                                         Demandé le {format(new Date(mod.cree_le), 'dd/MM/yyyy à HH:mm', { locale: fr })}
                                     </p>
                                 </div>
-                                <div className="flex gap-2">
+
+                                {/* Boutons d'action */}
+                                <div className="flex gap-2 shrink-0">
                                     <button
                                         onClick={() => handleAction(mod.id, 'approve')}
                                         disabled={!!processingId}
-                                        className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 disabled:bg-gray-400"
+                                        className="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-green-200 disabled:opacity-50 flex items-center gap-2 transition"
                                     >
-                                        {processingId === mod.id ? '...' : 'Accepter'}
+                                        {processingId === mod.id ? '...' : <><Check className="w-4 h-4" /> Accepter</>}
                                     </button>
                                     <button
                                         onClick={() => handleAction(mod.id, 'reject')}
                                         disabled={!!processingId}
-                                        className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 disabled:bg-gray-400"
+                                        className="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-200 disabled:opacity-50 flex items-center gap-2 transition"
                                     >
-                                        {processingId === mod.id ? '...' : 'Refuser'}
+                                        {processingId === mod.id ? '...' : <><X className="w-4 h-4" /> Refuser</>}
                                     </button>
                                 </div>
                             </div>
-                            <div className="mt-4 border-t pt-3">
-                                <p className="font-semibold text-sm mb-2">Données proposées :</p>
-                                <ul className="list-disc list-inside text-sm space-y-1">
+
+                            {/* Détail des modifications */}
+                            <div className="mt-4 pt-4 border-t border-gray-100 bg-gray-50 rounded-lg p-3">
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+                                    Données proposées
+                                </p>
+                                <ul className="space-y-1">
                                     {Object.entries(mod.donnees).map(([key, value]) => (
-                                        <li key={key}>
-                                            <span className="font-medium capitalize">{key.replace('_', ' ')} :</span> {String(value)}
+                                        <li key={key} className="text-sm flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                            <span className="font-medium text-gray-700 capitalize w-32 shrink-0">
+                                                {key.replace('_', ' ')}
+                                            </span>
+                                            <span className="hidden sm:inline text-gray-400">→</span>
+                                            <span className="text-[#B05F63] font-semibold break-all">
+                                                {String(value)}
+                                            </span>
                                         </li>
                                     ))}
                                 </ul>
