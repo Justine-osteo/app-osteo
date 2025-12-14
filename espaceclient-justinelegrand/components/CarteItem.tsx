@@ -15,15 +15,13 @@ export default function CarteItem({ titre, boutonTexte, onClick, imageUrl, fallb
     return (
         <div
             onClick={onClick}
-            className={className} // Permet de recevoir les styles de la page parente
+            className={className}
             style={{
                 backgroundColor: '#FAEEF0',
                 borderRadius: 12,
-                // Dimensions ajustées pour éviter l'effet "trop large"
-                minHeight: 240,
-                width: '100%',
-                maxWidth: 220, // On limite la largeur pour garder un format carte élégant
-                margin: '0 auto', // On centre la carte dans la grille
+                // RETOUR AUX DIMENSIONS INITIALES FIXES
+                width: 160,
+                height: 240,
 
                 boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
                 overflow: 'hidden',
@@ -33,9 +31,10 @@ export default function CarteItem({ titre, boutonTexte, onClick, imageUrl, fallb
                 fontFamily: 'Charm, cursive',
                 cursor: 'pointer',
                 transition: 'transform 0.3s ease',
+                margin: '0 auto', // Pour centrer dans la grille si nécessaire
             }}
             onMouseEnter={e => {
-                (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.02)'
+                (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.05)'
             }}
             onMouseLeave={e => {
                 (e.currentTarget as HTMLDivElement).style.transform = 'scale(1)'
@@ -44,11 +43,14 @@ export default function CarteItem({ titre, boutonTexte, onClick, imageUrl, fallb
             {/* Titre : Même style que le bouton (Rose foncé + Blanc) */}
             <div style={{
                 textAlign: 'center',
-                padding: '8px 4px',
-                fontSize: '1.3rem', // Légèrement réduit pour s'adapter à la largeur
+                padding: '4px 2px',
+                fontSize: '1.2rem', // Taille ajustée pour la largeur de 160px
                 fontWeight: 'bold',
                 color: 'white',
-                backgroundColor: '#B05F63'
+                backgroundColor: '#B05F63',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
             }}>
                 {titre}
             </div>
@@ -56,7 +58,7 @@ export default function CarteItem({ titre, boutonTexte, onClick, imageUrl, fallb
             {/* Image ou fallback */}
             <div
                 style={{
-                    flex: 1, // Prend toute la place disponible au milieu
+                    flex: 1,
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
@@ -78,7 +80,7 @@ export default function CarteItem({ titre, boutonTexte, onClick, imageUrl, fallb
                             display: 'flex',
                             justifyContent: 'center',
                             alignItems: 'center',
-                            fontSize: '3rem',
+                            fontSize: '2.5rem',
                             color: '#F3D8DD',
                         }}
                     >
@@ -91,11 +93,11 @@ export default function CarteItem({ titre, boutonTexte, onClick, imageUrl, fallb
             <div
                 style={{
                     backgroundColor: '#B05F63',
-                    padding: '10px',
+                    padding: '8px',
                     textAlign: 'center',
                 }}
             >
-                <span style={{ color: 'white', fontWeight: 'bold', fontSize: '1rem' }}>{boutonTexte}</span>
+                <span style={{ color: 'white', fontWeight: 'bold', fontSize: '0.9rem' }}>{boutonTexte}</span>
             </div>
         </div>
     )
