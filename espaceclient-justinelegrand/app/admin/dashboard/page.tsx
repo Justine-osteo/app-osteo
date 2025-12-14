@@ -2,19 +2,19 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation' // Import nécessaire pour la redirection
+import { useRouter } from 'next/navigation'
 import TitrePrincipal from '@/components/ui/TitrePrincipal'
 import ProchainsRDV from '@/components/admin/ProchainsRDV'
 import SousTitre from '@/components/ui/SousTitre'
 import { supabase } from '@/lib/supabase/client'
-import { PlusCircle, FileText, UserCheck, LogOut } from 'lucide-react' // Ajout de l'icône LogOut
+import { PlusCircle, FileText, UserCheck, LogOut } from 'lucide-react'
 import DashboardNotes from '@/components/admin/DashboardNotes'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
 
 export default function AdminDashboard() {
-  const router = useRouter() // Initialisation du router
+  const router = useRouter()
   const [stats, setStats] = useState({ animaux: 0, satisfaction: 0 })
   const [prestationStats, setPrestationStats] = useState([
     { name: 'Ostéo', total: 0 },
@@ -24,7 +24,6 @@ export default function AdminDashboard() {
 
   const supabaseTyped = supabase as unknown as SupabaseClient<Database>
 
-  // Fonction de déconnexion
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/connexion')
@@ -81,7 +80,6 @@ export default function AdminDashboard() {
       <div className="flex justify-between items-start flex-wrap gap-4 mb-8">
         <TitrePrincipal>Espace admin - Justine Legrand Ostéopathe animalier</TitrePrincipal>
 
-        {/* Barre d'outils avec le bouton déconnexion à la fin */}
         <div className="flex flex-wrap gap-3">
           <Link
             href="/admin/creer-rdv/creer"
@@ -105,7 +103,6 @@ export default function AdminDashboard() {
             <span className="hidden sm:inline">Validations</span>
           </Link>
 
-          {/* Bouton Déconnexion */}
           <button
             onClick={handleLogout}
             className="inline-flex items-center gap-2 bg-stone-500 text-white font-semibold px-4 py-2 rounded-lg shadow hover:bg-stone-600 transition ml-2"
@@ -124,26 +121,23 @@ export default function AdminDashboard() {
         </div>
 
         <div className="space-y-6">
-          {/* Bloc-notes */}
           <div className="bg-[#FBEAEC] p-6 rounded shadow-md">
             <SousTitre>Pense-bête</SousTitre>
             <DashboardNotes />
           </div>
 
-          {/* Aperçu */}
           <div className="bg-[#FBEAEC] p-6 rounded shadow-md">
             <SousTitre>Aperçu</SousTitre>
             {loadingStats ? (
               <p className="text-sm text-gray-600">Chargement des statistiques...</p>
             ) : (
               <ul className="space-y-2 text-[#6E4B42] text-lg">
-                <li>🐾 <strong>{stats.animaux}</strong> animaux suivis</li>
-                <li>⭐ Taux de satisfaction : <strong>{stats.satisfaction}%</strong></li>
+                <li>{stats.animaux} animaux suivis</li>
+                <li>Taux de satisfaction : {stats.satisfaction}%</li>
               </ul>
             )}
           </div>
 
-          {/* Graphique */}
           <div className="bg-[#FBEAEC] p-6 rounded shadow-md">
             <SousTitre>Répartition des prestations</SousTitre>
             {loadingStats ? (
