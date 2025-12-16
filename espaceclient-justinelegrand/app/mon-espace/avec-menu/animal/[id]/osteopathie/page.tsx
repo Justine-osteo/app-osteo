@@ -51,37 +51,38 @@ export default function DossierOsteopathie() {
     }
 
     return (
-        <main className="max-w-3xl mx-auto p-6">
-            <button
-                onClick={() => router.push(`/mon-espace/avec-menu/animal/${animalId}`)}
-                className="flex items-center text-[#6E4B42] hover:underline mb-4"
-            >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Retour à la fiche de l’animal
-            </button>
+        <div className="min-h-screen bg-[#FFF0F3]">
+            <main className="max-w-3xl mx-auto p-6">
+                <button
+                    onClick={() => router.push(`/mon-espace/avec-menu/animal/${animalId}`)}
+                    className="flex items-center text-[#6E4B42] hover:underline mb-4"
+                >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Retour à la fiche de l’animal
+                </button>
 
-            <TitrePrincipal>Dossier ostéopathie</TitrePrincipal>
+                <TitrePrincipal>Dossier ostéopathie</TitrePrincipal>
 
-            {seances.length === 0 ? (
-                <p className="text-center mt-6">Aucune séance enregistrée pour cet animal.</p>
-            ) : (
-                <div className="space-y-4 mt-6">
-                    {seances.map((seance) => (
-                        <button
-                            key={seance.id}
-                            onClick={() =>
-                                router.push(
-                                    `/mon-espace/avec-menu/animal/${animalId}/osteopathie/${seance.id}`
-                                )
-                            }
-                            className="w-full text-left bg-white border border-[#B05F63] text-[#6E4B42] p-4 rounded shadow hover:bg-[#FBEAEC] transition"
-                        >
-                            {format(new Date(seance.date), 'dd MMMM yyyy', { locale: fr })}
-                        </button>
-                    ))}
-                </div>
-            )}
-        </main>
+                {seances.length === 0 ? (
+                    <p className="text-center mt-6 text-[#6E4B42]">Aucune séance enregistrée pour cet animal.</p>
+                ) : (
+                    <div className="space-y-4 mt-6">
+                        {seances.map((seance) => (
+                            <button
+                                key={seance.id}
+                                onClick={() =>
+                                    router.push(
+                                        `/mon-espace/avec-menu/animal/${animalId}/osteopathie/${seance.id}`
+                                    )
+                                }
+                                className="w-full text-left bg-white border border-[#B05F63] text-[#6E4B42] p-4 rounded shadow hover:bg-[#FBEAEC] transition"
+                            >
+                                {format(new Date(seance.date), 'dd MMMM yyyy', { locale: fr })}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </main>
+        </div>
     )
 }
-

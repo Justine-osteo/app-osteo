@@ -195,92 +195,94 @@ export default function DetailSeanceOsteopathie() {
     }
 
     if (loading) return <EcranDeChargement texte="Chargement de la séance..." />
-    if (!seance) return <p className="text-center mt-8">Séance introuvable.</p>
+    if (!seance) return <p className="text-center mt-8 text-[#6E4B42]">Séance introuvable.</p>
 
     return (
-        <main className="max-w-3xl mx-auto p-6">
-            <button
-                onClick={() => router.push(`/mon-espace/avec-menu/animal/${animalId}/osteopathie`)}
-                className="flex items-center text-[#6E4B42] hover:underline mb-4"
-            >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Retour au dossier ostéopathie
-            </button>
+        <div className="min-h-screen bg-[#FFF0F3]">
+            <main className="max-w-3xl mx-auto p-6">
+                <button
+                    onClick={() => router.push(`/mon-espace/avec-menu/animal/${animalId}/osteopathie`)}
+                    className="flex items-center text-[#6E4B42] hover:underline mb-4"
+                >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Retour au dossier ostéopathie
+                </button>
 
-            <TitrePrincipal>
-                Séance du {format(new Date(seance.date), 'dd MMMM yyyy', { locale: fr })}
-            </TitrePrincipal>
+                <TitrePrincipal>
+                    Séance du {format(new Date(seance.date), 'dd MMMM yyyy', { locale: fr })}
+                </TitrePrincipal>
 
-            <div className="bg-white border border-[#B05F63] p-6 rounded-lg shadow-sm text-[#6E4B42] space-y-4 mt-6">
-                <h2 className="font-charm text-xl text-[#B05F63] border-b border-[#B05F63]/30 pb-2 mb-4">Résumé de la consultation</h2>
+                <div className="bg-white border border-[#B05F63] p-6 rounded-lg shadow-sm text-[#6E4B42] space-y-4 mt-6">
+                    <h2 className="font-charm text-xl text-[#B05F63] border-b border-[#B05F63]/30 pb-2 mb-4">Résumé de la consultation</h2>
 
-                <div>
-                    <span className="font-semibold block mb-1">Motif :</span>
-                    <p className="bg-gray-50 p-2 rounded text-sm">{seance.motif || '—'}</p>
-                </div>
-
-                <div>
-                    <span className="font-semibold block mb-1">Observations :</span>
-                    <div className="bg-gray-50 p-2 rounded text-sm whitespace-pre-line space-y-2">
-                        {seance.observations && <p><strong>Générales :</strong> {seance.observations}</p>}
-                        {seance.observations_osteo && <p><strong>Ostéopathiques :</strong> {seance.observations_osteo}</p>}
-                        {!seance.observations && !seance.observations_osteo && '—'}
+                    <div>
+                        <span className="font-semibold block mb-1">Motif :</span>
+                        <p className="bg-gray-50 p-2 rounded text-sm">{seance.motif || '—'}</p>
                     </div>
-                </div>
 
-                <div>
-                    <span className="font-semibold block mb-1">Recommandations :</span>
-                    <p className="bg-gray-50 p-2 rounded text-sm whitespace-pre-line">{seance.recommandations || '—'}</p>
-                </div>
-
-                {/* Affichage des mesures dans le résumé web */}
-                {(seance.mesure_ant_gauche_avant || seance.mesure_ant_gauche_apres) && (
-                    <div className="mt-4">
-                        <span className="font-semibold block mb-2">Mesures musculaires :</span>
-                        <div className="grid grid-cols-2 gap-4 text-xs">
-                            <div className="bg-gray-50 p-2 rounded">
-                                <p className="font-semibold mb-1">Avant</p>
-                                <p>Ant G: {seance.mesure_ant_gauche_avant ?? '-'}</p>
-                                <p>Ant D: {seance.mesure_ant_droite_avant ?? '-'}</p>
-                                <p>Post G: {seance.mesure_post_gauche_avant ?? '-'}</p>
-                                <p>Post D: {seance.mesure_post_droite_avant ?? '-'}</p>
-                            </div>
-                            <div className="bg-gray-50 p-2 rounded">
-                                <p className="font-semibold mb-1">Après</p>
-                                <p>Ant G: {seance.mesure_ant_gauche_apres ?? '-'}</p>
-                                <p>Ant D: {seance.mesure_ant_droite_apres ?? '-'}</p>
-                                <p>Post G: {seance.mesure_post_gauche_apres ?? '-'}</p>
-                                <p>Post D: {seance.mesure_post_droite_apres ?? '-'}</p>
-                            </div>
+                    <div>
+                        <span className="font-semibold block mb-1">Observations :</span>
+                        <div className="bg-gray-50 p-2 rounded text-sm whitespace-pre-line space-y-2">
+                            {seance.observations && <p><strong>Générales :</strong> {seance.observations}</p>}
+                            {seance.observations_osteo && <p><strong>Ostéopathiques :</strong> {seance.observations_osteo}</p>}
+                            {!seance.observations && !seance.observations_osteo && '—'}
                         </div>
                     </div>
-                )}
 
-                {seance.annotation_squelette_url && (
-                    <div className="mt-4 pt-4 border-t border-dashed border-gray-300">
-                        <span className="font-semibold block mb-2">Schéma annoté disponible</span>
-                        <p className="text-xs text-gray-500 italic">Le schéma sera inclus dans le PDF téléchargeable ci-dessous.</p>
+                    <div>
+                        <span className="font-semibold block mb-1">Recommandations :</span>
+                        <p className="bg-gray-50 p-2 rounded text-sm whitespace-pre-line">{seance.recommandations || '—'}</p>
                     </div>
-                )}
-            </div>
 
-            <button
-                onClick={handleDownloadPDF}
-                disabled={generatingPdf}
-                className="w-full flex items-center justify-center gap-2 bg-[#B05F63] text-white font-semibold py-3 px-4 rounded-lg hover:bg-[#8E3E42] transition shadow-md mt-6 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-                {generatingPdf ? (
-                    <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Génération du PDF en cours...
-                    </>
-                ) : (
-                    <>
-                        <FileDown className="w-5 h-5" />
-                        Télécharger le compte rendu complet (PDF)
-                    </>
-                )}
-            </button>
-        </main>
+                    {/* Affichage des mesures dans le résumé web */}
+                    {(seance.mesure_ant_gauche_avant || seance.mesure_ant_gauche_apres) && (
+                        <div className="mt-4">
+                            <span className="font-semibold block mb-2">Mesures musculaires :</span>
+                            <div className="grid grid-cols-2 gap-4 text-xs">
+                                <div className="bg-gray-50 p-2 rounded">
+                                    <p className="font-semibold mb-1">Avant</p>
+                                    <p>Ant G: {seance.mesure_ant_gauche_avant ?? '-'}</p>
+                                    <p>Ant D: {seance.mesure_ant_droite_avant ?? '-'}</p>
+                                    <p>Post G: {seance.mesure_post_gauche_avant ?? '-'}</p>
+                                    <p>Post D: {seance.mesure_post_droite_avant ?? '-'}</p>
+                                </div>
+                                <div className="bg-gray-50 p-2 rounded">
+                                    <p className="font-semibold mb-1">Après</p>
+                                    <p>Ant G: {seance.mesure_ant_gauche_apres ?? '-'}</p>
+                                    <p>Ant D: {seance.mesure_ant_droite_apres ?? '-'}</p>
+                                    <p>Post G: {seance.mesure_post_gauche_apres ?? '-'}</p>
+                                    <p>Post D: {seance.mesure_post_droite_apres ?? '-'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {seance.annotation_squelette_url && (
+                        <div className="mt-4 pt-4 border-t border-dashed border-gray-300">
+                            <span className="font-semibold block mb-2">Schéma annoté disponible</span>
+                            <p className="text-xs text-gray-500 italic">Le schéma sera inclus dans le PDF téléchargeable ci-dessous.</p>
+                        </div>
+                    )}
+                </div>
+
+                <button
+                    onClick={handleDownloadPDF}
+                    disabled={generatingPdf}
+                    className="w-full flex items-center justify-center gap-2 bg-[#B05F63] text-white font-semibold py-3 px-4 rounded-lg hover:bg-[#8E3E42] transition shadow-md mt-6 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                    {generatingPdf ? (
+                        <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Génération du PDF en cours...
+                        </>
+                    ) : (
+                        <>
+                            <FileDown className="w-5 h-5" />
+                            Télécharger le compte rendu complet (PDF)
+                        </>
+                    )}
+                </button>
+            </main>
+        </div>
     )
 }
