@@ -279,15 +279,13 @@ export default function AnimalClient({ id }: { id: string }) {
                                     </div>
 
                                     {/* Activité */}
-                                    {animal.activite && (
-                                        <div>
-                                            <p className="text-gray-500 text-sm uppercase tracking-wide font-semibold mb-1">Activité</p>
-                                            <div className="flex items-center justify-center md:justify-start gap-2 font-bold text-lg md:text-xl text-[#6E4B42]">
-                                                <Activity className="w-5 h-5 text-[#B05F63]" />
-                                                {animal.activite}
-                                            </div>
+                                    <div>
+                                        <p className="text-gray-500 text-sm uppercase tracking-wide font-semibold mb-1">Activité</p>
+                                        <div className="flex items-center justify-center md:justify-start gap-2 font-bold text-lg md:text-xl text-[#6E4B42]">
+                                            <Activity className="w-5 h-5 text-[#B05F63]" />
+                                            {animal.activite || 'Non renseignée'}
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
