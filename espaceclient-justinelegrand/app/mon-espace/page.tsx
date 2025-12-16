@@ -219,7 +219,7 @@ export default function EspaceClientPage() {
                         className="md:hidden flex items-center gap-2 bg-[#FBEAEC] text-[#6E4B42] px-4 py-2 rounded-xl border border-[#F3D8DD] font-semibold text-sm shadow-sm hover:bg-[#F3D8DD]"
                     >
                         <UserIcon className="w-4 h-4 text-[#B05F63]" />
-                        Mes infos
+                        Mon profil
                     </button>
                 </div>
 

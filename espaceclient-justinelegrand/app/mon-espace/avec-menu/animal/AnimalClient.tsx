@@ -49,20 +49,17 @@ export default function AnimalClient({ id }: { id: string }) {
                 return
             }
 
-            // Validation Zod souple (on log l'erreur mais on ne bloque pas forcément tout si les données sont partielles)
+            // Validation Zod souple
             const parsedAnimal = AnimalSchema.safeParse(currentAnimal)
             if (!parsedAnimal.success) {
                 console.warn('Validation Zod (Animal) :', parsedAnimal.error.format())
-                // On utilise quand même les données brutes si le parsing échoue partiellement pour ne pas bloquer l'UI
                 setAnimal(currentAnimal as Animal)
             } else {
                 setAnimal(parsedAnimal.data)
             }
 
             // 2. Récupérer les autres animaux
-            // On utilise currentAnimal.client_id directement
             const clientId = currentAnimal.client_id
-
             const { data: autres, error: errorAutres } = await supabase
                 .from('animaux')
                 .select('id, nom')
@@ -88,7 +85,6 @@ export default function AnimalClient({ id }: { id: string }) {
         fetchAnimal()
     }, [id, supabase])
 
-    // CORRECTION ICI : Utilisation de la prop 'texte' au lieu de 'animationData'
     if (loading) return <EcranDeChargement texte="Chargement du dossier..." />
 
     if (!animal) return (
@@ -161,22 +157,22 @@ export default function AnimalClient({ id }: { id: string }) {
         <div className="min-h-screen bg-[#FFF0F3] p-4 sm:p-6 font-sans text-[#6E4B42]">
 
             {/* --- NAVIGATION MOBILE --- */}
-            <div className="md:hidden flex justify-between items-center mb-6">
+            <div className="md:hidden flex justify-between items-center mb-4">
                 <button
                     onClick={() => router.push('/mon-espace')}
-                    className="flex items-center text-[#6E4B42] font-semibold bg-white px-4 py-2.5 rounded-xl border border-[#F3D8DD] shadow-sm hover:bg-[#FBEAEC] transition"
+                    className="flex items-center text-[#6E4B42] font-semibold bg-white px-4 py-2 rounded-xl border border-[#F3D8DD] shadow-sm hover:bg-[#FBEAEC] transition text-sm"
                 >
                     <ArrowLeft className="w-4 h-4 mr-2" /> Retour
                 </button>
                 <button
                     onClick={() => setIsMobileMenuOpen(true)}
-                    className="flex items-center gap-2 bg-[#FBEAEC] text-[#B05F63] px-4 py-2.5 rounded-xl border border-[#F3D8DD] font-bold shadow-sm active:scale-95 transition"
+                    className="flex items-center gap-2 bg-[#FBEAEC] text-[#B05F63] px-4 py-2 rounded-xl border border-[#F3D8DD] font-bold shadow-sm active:scale-95 transition text-sm"
                 >
                     <Menu className="w-5 h-5" /> Dossiers
                 </button>
             </div>
 
-            <div className="flex max-w-7xl mx-auto gap-8">
+            <div className="flex max-w-7xl mx-auto gap-6">
 
                 {/* --- SIDEBAR DESKTOP --- */}
                 <aside className="hidden md:block w-1/4 bg-[#FBEAEC] rounded-2xl p-6 shadow-sm h-fit border-2 border-[#F3D8DD] sticky top-6">
@@ -208,13 +204,11 @@ export default function AnimalClient({ id }: { id: string }) {
                 )}
 
                 {/* --- CONTENU PRINCIPAL --- */}
-                <main className="flex-1 space-y-8">
+                <main className="flex-1 space-y-4 md:space-y-6">
 
-                    {/* Header Nom avec Fond Blanc */}
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border-2 border-[#F3D8DD] flex items-center justify-between">
-                        <div className="text-[#B05F63] mb-0">
-                            <TitrePrincipal><center>{animal.nom}</center></TitrePrincipal>
-                        </div>
+                    {/* Header Nom Épuré (Sans fond blanc) */}
+                    <div className="text-center mb-2">
+                        <TitrePrincipal>{animal.nom}</TitrePrincipal>
                     </div>
 
                     {/* Alerte Modif */}
@@ -227,12 +221,12 @@ export default function AnimalClient({ id }: { id: string }) {
                         </div>
                     )}
 
-                    {/* Carte Identité */}
-                    <section className="bg-white rounded-2xl p-8 shadow-sm border-2 border-[#F3D8DD] flex flex-col md:flex-row gap-10 items-start">
-                        {/* Photo */}
-                        <div className="shrink-0 mx-auto md:mx-0 relative group">
+                    {/* Carte Identité - Compactée */}
+                    <section className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border-2 border-[#F3D8DD] flex flex-col md:flex-row gap-6 items-center md:items-start">
+                        {/* Photo avec liseré Rose Gold (#B05F63) */}
+                        <div className="shrink-0 relative group">
                             {animal.photo_url ? (
-                                <div className="w-40 h-40 rounded-full p-1.5 border-4 border-[#FBEAEC] shadow-md bg-white transition-transform group-hover:scale-105">
+                                <div className="w-32 h-32 md:w-36 md:h-36 rounded-full p-1 border-4 border-[#B05F63] shadow-md bg-white transition-transform group-hover:scale-105">
                                     <img
                                         src={animal.photo_url}
                                         alt={`Photo de ${animal.nom}`}
@@ -240,65 +234,65 @@ export default function AnimalClient({ id }: { id: string }) {
                                     />
                                 </div>
                             ) : (
-                                <div className="w-40 h-40 rounded-full bg-[#FBEAEC] border-4 border-white shadow-md flex items-center justify-center text-5xl font-bold text-[#B05F63] transition-transform group-hover:scale-105">
+                                <div className="w-32 h-32 md:w-36 md:h-36 rounded-full bg-[#FBEAEC] border-4 border-[#B05F63] shadow-md flex items-center justify-center text-5xl font-bold text-[#B05F63] transition-transform group-hover:scale-105">
                                     {animal.nom.charAt(0).toUpperCase()}
                                 </div>
                             )}
                             {/* Pastille Sexe */}
-                            <div className="absolute bottom-2 right-2 bg-white rounded-full p-2 shadow-md border border-[#F3D8DD] text-[#B05F63] font-bold text-sm uppercase">
+                            <div className="absolute bottom-1 right-1 bg-white rounded-full p-1.5 shadow-md border border-[#F3D8DD] text-[#B05F63] font-bold text-xs uppercase">
                                 {animal.sexe === 'mâle' ? '♂' : animal.sexe === 'femelle' ? '♀' : '?'}
                             </div>
                         </div>
 
                         {/* Infos Détails */}
-                        <div className="flex-1 w-full space-y-4 text-sm text-gray-600">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-[#FFF5F7] p-4 rounded-xl border border-[#F3D8DD]">
-                                    <p className="text-xs text-[#B05F63] uppercase tracking-wide font-bold mb-1 flex items-center gap-1"><PawPrint className="w-3 h-3" /> Race</p>
-                                    <p className="font-bold text-[#6E4B42] text-lg">{animal.race ?? 'Non renseignée'}</p>
+                        <div className="flex-1 w-full space-y-3 text-sm text-gray-600">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-[#FFF5F7] p-3 rounded-xl border border-[#F3D8DD]">
+                                    <p className="text-[10px] text-[#B05F63] uppercase tracking-wide font-bold mb-1 flex items-center gap-1"><PawPrint className="w-3 h-3" /> Race</p>
+                                    <p className="font-bold text-[#6E4B42] text-base">{animal.race ?? 'Non renseignée'}</p>
                                 </div>
-                                <div className="bg-[#FFF5F7] p-4 rounded-xl border border-[#F3D8DD]">
-                                    <p className="text-xs text-[#B05F63] uppercase tracking-wide font-bold mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" /> Naissance</p>
-                                    <p className="font-bold text-[#6E4B42] text-lg">
+                                <div className="bg-[#FFF5F7] p-3 rounded-xl border border-[#F3D8DD]">
+                                    <p className="text-[10px] text-[#B05F63] uppercase tracking-wide font-bold mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" /> Naissance</p>
+                                    <p className="font-bold text-[#6E4B42] text-base">
                                         {animal.date_naissance ? new Date(animal.date_naissance).toLocaleDateString() : 'Inconnue'}
                                     </p>
                                 </div>
-                                <div className="bg-[#FFF5F7] p-4 rounded-xl border border-[#F3D8DD]">
-                                    <p className="text-xs text-[#B05F63] uppercase tracking-wide font-bold mb-1 flex items-center gap-1"><Ruler className="w-3 h-3" /> Stérilisé</p>
-                                    <p className="font-bold text-[#6E4B42] text-lg">{animal.sterilise ? 'Oui' : 'Non'}</p>
+                                <div className="bg-[#FFF5F7] p-3 rounded-xl border border-[#F3D8DD]">
+                                    <p className="text-[10px] text-[#B05F63] uppercase tracking-wide font-bold mb-1 flex items-center gap-1"><Ruler className="w-3 h-3" /> Stérilisé</p>
+                                    <p className="font-bold text-[#6E4B42] text-base">{animal.sterilise ? 'Oui' : 'Non'}</p>
                                 </div>
                             </div>
 
-                            <div className="bg-[#FFF5F7] p-4 rounded-xl border border-[#F3D8DD]">
-                                <p className="text-xs text-[#B05F63] uppercase tracking-wide font-bold mb-1">Activité</p>
-                                <p className="text-[#6E4B42] font-medium leading-relaxed">{animal.activite ?? 'Non renseignée'}</p>
+                            <div className="bg-[#FFF5F7] p-3 rounded-xl border border-[#F3D8DD]">
+                                <p className="text-[10px] text-[#B05F63] uppercase tracking-wide font-bold mb-1">Activité</p>
+                                <p className="text-[#6E4B42] font-medium leading-tight">{animal.activite ?? 'Non renseignée'}</p>
                             </div>
                         </div>
                     </section>
 
-                    {/* Antécédents */}
-                    <section className="bg-white rounded-2xl p-8 shadow-sm border-2 border-[#F3D8DD] space-y-4">
+                    {/* Antécédents - Compacté */}
+                    <section className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border-2 border-[#F3D8DD] space-y-2">
                         <div className="text-[#6E4B42] flex items-center gap-2">
                             <Activity className="w-5 h-5 text-[#B05F63]" />
                             <SousTitre>Antécédents médicaux</SousTitre>
                         </div>
-                        <div className="bg-[#FFF5F7] p-6 rounded-xl border border-[#F3D8DD] text-[#6E4B42] italic leading-relaxed">
+                        <div className="bg-[#FFF5F7] p-4 rounded-xl border border-[#F3D8DD] text-[#6E4B42] italic leading-relaxed text-sm">
                             {animal.antecedents ? animal.antecedents : 'Aucun antécédent particulier signalé.'}
                         </div>
                     </section>
 
-                    {/* Actions / Comptes rendus */}
-                    <section className="space-y-6">
+                    {/* Actions / Comptes rendus - Boutons Rose Gold */}
+                    <section className="space-y-4">
                         <div className="text-[#6E4B42] px-1 flex items-center gap-2">
                             <FileText className="w-5 h-5 text-[#B05F63]" />
                             <SousTitre>Comptes rendus & Actions</SousTitre>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <button
                                 onClick={() => router.push(`/mon-espace/avec-menu/animal/${animal.id}/osteopathie`)}
-                                className="flex flex-col items-center justify-center gap-3 bg-white border-2 border-[#F3D8DD] text-[#6E4B42] p-6 rounded-2xl shadow-sm hover:bg-[#FFF0F3] hover:border-[#B05F63] hover:text-[#B05F63] transition-all group"
+                                className="flex flex-col items-center justify-center gap-2 bg-white border-2 border-[#B05F63] text-[#B05F63] p-4 rounded-2xl shadow-sm hover:bg-[#FFF0F3] transition-all group"
                             >
-                                <div className="bg-[#FFF0F3] p-3 rounded-full group-hover:bg-white transition-colors">
+                                <div className="bg-[#FFF0F3] p-2 rounded-full group-hover:bg-white transition-colors border border-[#F3D8DD]">
                                     <Activity className="w-6 h-6 text-[#B05F63]" />
                                 </div>
                                 <span className="font-bold">Ostéopathie</span>
@@ -306,9 +300,9 @@ export default function AnimalClient({ id }: { id: string }) {
 
                             <button
                                 onClick={() => router.push(`/mon-espace/avec-menu/animal/${animal.id}/nutrition`)}
-                                className="flex flex-col items-center justify-center gap-3 bg-white border-2 border-[#F3D8DD] text-[#6E4B42] p-6 rounded-2xl shadow-sm hover:bg-[#FFF0F3] hover:border-[#B05F63] hover:text-[#B05F63] transition-all group"
+                                className="flex flex-col items-center justify-center gap-2 bg-white border-2 border-[#B05F63] text-[#B05F63] p-4 rounded-2xl shadow-sm hover:bg-[#FFF0F3] transition-all group"
                             >
-                                <div className="bg-[#FFF0F3] p-3 rounded-full group-hover:bg-white transition-colors">
+                                <div className="bg-[#FFF0F3] p-2 rounded-full group-hover:bg-white transition-colors border border-[#F3D8DD]">
                                     <Utensils className="w-6 h-6 text-[#B05F63]" />
                                 </div>
                                 <span className="font-bold">Nutrition</span>
@@ -316,9 +310,9 @@ export default function AnimalClient({ id }: { id: string }) {
 
                             <button
                                 onClick={() => router.push(`/mon-espace/avec-menu/animal/${animal.id}/modifier`)}
-                                className="flex flex-col items-center justify-center gap-3 bg-white border-2 border-[#F3D8DD] text-[#6E4B42] p-6 rounded-2xl shadow-sm hover:bg-[#FFF0F3] hover:border-[#B05F63] hover:text-[#B05F63] transition-all group"
+                                className="flex flex-col items-center justify-center gap-2 bg-white border-2 border-[#B05F63] text-[#B05F63] p-4 rounded-2xl shadow-sm hover:bg-[#FFF0F3] transition-all group"
                             >
-                                <div className="bg-[#FFF0F3] p-3 rounded-full group-hover:bg-white transition-colors">
+                                <div className="bg-[#FFF0F3] p-2 rounded-full group-hover:bg-white transition-colors border border-[#F3D8DD]">
                                     <Edit3 className="w-6 h-6 text-[#B05F63]" />
                                 </div>
                                 <span className="font-bold">Modifier la fiche</span>
