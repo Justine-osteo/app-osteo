@@ -211,11 +211,10 @@ export default function AnimalClient({ id }: { id: string }) {
                 <main className="flex-1 space-y-8">
 
                     {/* Header Nom avec Fond Blanc */}
-                    <div className="bg-[#FBEAEC] p-8 rounded-2xl shadow-sm border-2 border-[#F3D8DD] flex items-center justify-between">
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border-2 border-[#F3D8DD] flex items-center justify-between">
                         <div className="text-[#B05F63] mb-0">
-                            <TitrePrincipal>{animal.nom}</TitrePrincipal>
+                            <TitrePrincipal><center>{animal.nom}</center></TitrePrincipal>
                         </div>
-                        <span className="hidden sm:inline-block text-xs text-[#dcb0b6] font-mono bg-white px-2 py-1 rounded border border-[#F3D8DD]">#{animal.id.slice(0, 8)}</span>
                     </div>
 
                     {/* Alerte Modif */}
@@ -262,12 +261,6 @@ export default function AnimalClient({ id }: { id: string }) {
                                     <p className="text-xs text-[#B05F63] uppercase tracking-wide font-bold mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" /> Naissance</p>
                                     <p className="font-bold text-[#6E4B42] text-lg">
                                         {animal.date_naissance ? new Date(animal.date_naissance).toLocaleDateString() : 'Inconnue'}
-                                    </p>
-                                </div>
-                                <div className="bg-[#FFF5F7] p-4 rounded-xl border border-[#F3D8DD]">
-                                    <p className="text-xs text-[#B05F63] uppercase tracking-wide font-bold mb-1 flex items-center gap-1"><Weight className="w-3 h-3" /> Poids</p>
-                                    <p className="font-bold text-[#6E4B42] text-lg">
-                                        {animal.poids !== null && animal.poids !== undefined ? animal.poids + ' kg' : 'Inconnu'}
                                     </p>
                                 </div>
                                 <div className="bg-[#FFF5F7] p-4 rounded-xl border border-[#F3D8DD]">
