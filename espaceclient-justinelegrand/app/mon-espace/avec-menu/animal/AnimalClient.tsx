@@ -221,101 +221,123 @@ export default function AnimalClient({ id }: { id: string }) {
                         </div>
                     )}
 
-                    {/* Carte Identité - Compactée */}
-                    <section className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border-2 border-[#F3D8DD] flex flex-col md:flex-row gap-6 items-center md:items-start">
-                        {/* Photo avec liseré Rose Gold (#B05F63) */}
-                        <div className="shrink-0 relative group">
-                            {animal.photo_url ? (
-                                <div className="w-32 h-32 md:w-36 md:h-36 rounded-full p-1 border-4 border-[#B05F63] shadow-md bg-white transition-transform group-hover:scale-105">
-                                    <img
-                                        src={animal.photo_url}
-                                        alt={`Photo de ${animal.nom}`}
-                                        className="w-full h-full rounded-full object-cover"
-                                    />
+                    {/* Carte Identité - Version Agrandie et Lisible */}
+                    <section className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border-2 border-[#F3D8DD] flex flex-col items-center">
+
+                        {/* En-tête : Photo et Nom (centré) */}
+                        <div className="flex flex-col items-center mb-8">
+                            <div className="relative group mb-4">
+                                {animal.photo_url ? (
+                                    <div className="w-40 h-40 rounded-full p-1.5 border-4 border-[#B05F63] shadow-lg bg-white transition-transform group-hover:scale-105">
+                                        <img
+                                            src={animal.photo_url}
+                                            alt={`Photo de ${animal.nom}`}
+                                            className="w-full h-full rounded-full object-cover"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="w-40 h-40 rounded-full bg-[#FBEAEC] border-4 border-[#B05F63] shadow-lg flex items-center justify-center text-6xl font-bold text-[#B05F63] transition-transform group-hover:scale-105">
+                                        {animal.nom.charAt(0).toUpperCase()}
+                                    </div>
+                                )}
+                                {/* Pastille Sexe */}
+                                <div className="absolute bottom-2 right-2 bg-white rounded-full p-2 shadow-md border border-[#F3D8DD] text-[#B05F63] font-bold text-lg uppercase w-10 h-10 flex items-center justify-center">
+                                    {animal.sexe === 'mâle' ? '♂' : animal.sexe === 'femelle' ? '♀' : '?'}
                                 </div>
-                            ) : (
-                                <div className="w-32 h-32 md:w-36 md:h-36 rounded-full bg-[#FBEAEC] border-4 border-[#B05F63] shadow-md flex items-center justify-center text-5xl font-bold text-[#B05F63] transition-transform group-hover:scale-105">
-                                    {animal.nom.charAt(0).toUpperCase()}
-                                </div>
-                            )}
-                            {/* Pastille Sexe */}
-                            <div className="absolute bottom-1 right-1 bg-white rounded-full p-1.5 shadow-md border border-[#F3D8DD] text-[#B05F63] font-bold text-xs uppercase">
-                                {animal.sexe === 'mâle' ? '♂' : animal.sexe === 'femelle' ? '♀' : '?'}
                             </div>
                         </div>
 
-                        {/* Infos Détails */}
-                        <div className="flex-1 w-full space-y-3 text-sm text-gray-600">
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="bg-[#FFF5F7] p-3 rounded-xl border border-[#F3D8DD]">
-                                    <p className="text-[10px] text-[#B05F63] uppercase tracking-wide font-bold mb-1 flex items-center gap-1"><PawPrint className="w-3 h-3" /> Race</p>
-                                    <p className="font-bold text-[#6E4B42] text-base">{animal.race ?? 'Non renseignée'}</p>
-                                </div>
-                                <div className="bg-[#FFF5F7] p-3 rounded-xl border border-[#F3D8DD]">
-                                    <p className="text-[10px] text-[#B05F63] uppercase tracking-wide font-bold mb-1 flex items-center gap-1"><Calendar className="w-3 h-3" /> Naissance</p>
-                                    <p className="font-bold text-[#6E4B42] text-base">
-                                        {animal.date_naissance ? new Date(animal.date_naissance).toLocaleDateString() : 'Inconnue'}
-                                    </p>
-                                </div>
-                                <div className="bg-[#FFF5F7] p-3 rounded-xl border border-[#F3D8DD]">
-                                    <p className="text-[10px] text-[#B05F63] uppercase tracking-wide font-bold mb-1 flex items-center gap-1"><Ruler className="w-3 h-3" /> Stérilisé</p>
-                                    <p className="font-bold text-[#6E4B42] text-base">{animal.sterilise ? 'Oui' : 'Non'}</p>
-                                </div>
+                        {/* Grille d'Informations - Plus grosse et aérée */}
+                        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+
+                            {/* Bloc Race */}
+                            <div className="bg-[#FFF5F7] p-5 rounded-2xl border border-[#F3D8DD] flex flex-col items-center text-center hover:shadow-md transition-shadow">
+                                <p className="text-[#B05F63] font-charm text-xl mb-1 flex items-center gap-2">
+                                    <PawPrint className="w-5 h-5" /> Race
+                                </p>
+                                <p className="font-bold text-[#6E4B42] text-xl md:text-2xl">{animal.race ?? 'Non renseignée'}</p>
                             </div>
 
-                            <div className="bg-[#FFF5F7] p-3 rounded-xl border border-[#F3D8DD]">
-                                <p className="text-[10px] text-[#B05F63] uppercase tracking-wide font-bold mb-1">Activité</p>
-                                <p className="text-[#6E4B42] font-medium leading-tight">{animal.activite ?? 'Non renseignée'}</p>
+                            {/* Bloc Naissance */}
+                            <div className="bg-[#FFF5F7] p-5 rounded-2xl border border-[#F3D8DD] flex flex-col items-center text-center hover:shadow-md transition-shadow">
+                                <p className="text-[#B05F63] font-charm text-xl mb-1 flex items-center gap-2">
+                                    <Calendar className="w-5 h-5" /> Naissance
+                                </p>
+                                <p className="font-bold text-[#6E4B42] text-xl md:text-2xl">
+                                    {animal.date_naissance ? new Date(animal.date_naissance).toLocaleDateString() : 'Inconnue'}
+                                </p>
                             </div>
+
+                            {/* Bloc Stérilisé */}
+                            <div className="bg-[#FFF5F7] p-5 rounded-2xl border border-[#F3D8DD] flex flex-col items-center text-center hover:shadow-md transition-shadow">
+                                <p className="text-[#B05F63] font-charm text-xl mb-1 flex items-center gap-2">
+                                    <Ruler className="w-5 h-5" /> Stérilisé
+                                </p>
+                                <p className="font-bold text-[#6E4B42] text-xl md:text-2xl">{animal.sterilise ? 'Oui' : 'Non'}</p>
+                            </div>
+
+                            {/* Bloc Activité */}
+                            <div className="bg-[#FFF5F7] p-5 rounded-2xl border border-[#F3D8DD] flex flex-col items-center text-center hover:shadow-md transition-shadow">
+                                <p className="text-[#B05F63] font-charm text-xl mb-1 flex items-center gap-2">
+                                    <Activity className="w-5 h-5" /> Activité
+                                </p>
+                                <p className="font-bold text-[#6E4B42] text-xl md:text-2xl leading-tight">{animal.activite ?? 'Non renseignée'}</p>
+                            </div>
+
                         </div>
                     </section>
 
-                    {/* Antécédents - Compacté */}
-                    <section className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border-2 border-[#F3D8DD] space-y-2">
-                        <div className="text-[#6E4B42] flex items-center gap-2">
-                            <Activity className="w-5 h-5 text-[#B05F63]" />
+                    {/* Antécédents - Style cohérent */}
+                    <section className="bg-white rounded-2xl p-6 shadow-sm border-2 border-[#F3D8DD] space-y-3">
+                        <div className="text-[#6E4B42] flex items-center gap-2 mb-2">
+                            <div className="p-2 bg-[#FFF0F3] rounded-full">
+                                <Activity className="w-6 h-6 text-[#B05F63]" />
+                            </div>
                             <SousTitre>Antécédents médicaux</SousTitre>
                         </div>
-                        <div className="bg-[#FFF5F7] p-4 rounded-xl border border-[#F3D8DD] text-[#6E4B42] italic leading-relaxed text-sm">
+                        <div className="bg-[#FFF5F7] p-6 rounded-2xl border border-[#F3D8DD] text-[#6E4B42] italic leading-relaxed text-lg text-center md:text-left">
                             {animal.antecedents ? animal.antecedents : 'Aucun antécédent particulier signalé.'}
                         </div>
                     </section>
 
-                    {/* Actions / Comptes rendus - Boutons Rose Gold */}
-                    <section className="space-y-4">
-                        <div className="text-[#6E4B42] px-1 flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-[#B05F63]" />
+                    {/* Actions / Comptes rendus - Boutons Rose Gold Plein */}
+                    <section className="space-y-4 pt-4">
+                        <div className="text-[#6E4B42] px-1 flex items-center gap-2 mb-2">
+                            <div className="p-2 bg-[#FFF0F3] rounded-full">
+                                <FileText className="w-6 h-6 text-[#B05F63]" />
+                            </div>
                             <SousTitre>Comptes rendus & Actions</SousTitre>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <button
                                 onClick={() => router.push(`/mon-espace/avec-menu/animal/${animal.id}/osteopathie`)}
-                                className="flex flex-col items-center justify-center gap-2 bg-white border-2 border-[#B05F63] text-[#B05F63] p-4 rounded-2xl shadow-sm hover:bg-[#FFF0F3] transition-all group"
+                                className="flex flex-col items-center justify-center gap-3 bg-[#B05F63] text-white p-6 rounded-3xl shadow-lg hover:bg-[#9E4D52] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
                             >
-                                <div className="bg-[#FFF0F3] p-2 rounded-full group-hover:bg-white transition-colors border border-[#F3D8DD]">
-                                    <Activity className="w-6 h-6 text-[#B05F63]" />
+                                <div className="bg-white/20 p-3 rounded-full group-hover:bg-white/30 transition-colors backdrop-blur-sm">
+                                    <Activity className="w-8 h-8 text-white" />
                                 </div>
-                                <span className="font-bold">Ostéopathie</span>
+                                <span className="font-bold text-lg font-charm tracking-wide">Ostéopathie</span>
                             </button>
 
                             <button
                                 onClick={() => router.push(`/mon-espace/avec-menu/animal/${animal.id}/nutrition`)}
-                                className="flex flex-col items-center justify-center gap-2 bg-white border-2 border-[#B05F63] text-[#B05F63] p-4 rounded-2xl shadow-sm hover:bg-[#FFF0F3] transition-all group"
+                                className="flex flex-col items-center justify-center gap-3 bg-[#B05F63] text-white p-6 rounded-3xl shadow-lg hover:bg-[#9E4D52] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
                             >
-                                <div className="bg-[#FFF0F3] p-2 rounded-full group-hover:bg-white transition-colors border border-[#F3D8DD]">
-                                    <Utensils className="w-6 h-6 text-[#B05F63]" />
+                                <div className="bg-white/20 p-3 rounded-full group-hover:bg-white/30 transition-colors backdrop-blur-sm">
+                                    <Utensils className="w-8 h-8 text-white" />
                                 </div>
-                                <span className="font-bold">Nutrition</span>
+                                <span className="font-bold text-lg font-charm tracking-wide">Nutrition</span>
                             </button>
 
                             <button
                                 onClick={() => router.push(`/mon-espace/avec-menu/animal/${animal.id}/modifier`)}
-                                className="flex flex-col items-center justify-center gap-2 bg-white border-2 border-[#B05F63] text-[#B05F63] p-4 rounded-2xl shadow-sm hover:bg-[#FFF0F3] transition-all group"
+                                className="flex flex-col items-center justify-center gap-3 bg-[#B05F63] text-white p-6 rounded-3xl shadow-lg hover:bg-[#9E4D52] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
                             >
-                                <div className="bg-[#FFF0F3] p-2 rounded-full group-hover:bg-white transition-colors border border-[#F3D8DD]">
-                                    <Edit3 className="w-6 h-6 text-[#B05F63]" />
+                                <div className="bg-white/20 p-3 rounded-full group-hover:bg-white/30 transition-colors backdrop-blur-sm">
+                                    <Edit3 className="w-8 h-8 text-white" />
                                 </div>
-                                <span className="font-bold">Modifier la fiche</span>
+                                <span className="font-bold text-lg font-charm tracking-wide">Modifier la fiche</span>
                             </button>
                         </div>
                     </section>
