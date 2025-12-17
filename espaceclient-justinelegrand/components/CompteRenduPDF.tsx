@@ -381,7 +381,7 @@ const CompteRenduPDF: FC<Props> = ({
 
                     {/* Suivi */}
                     <View style={styles.section} wrap={false}>
-                        <Text style={styles.colTitle}>Suivi envisagé :</Text>
+                        <Text style={styles.colTitle}>Suivi conseillé :</Text>
                         <View style={styles.valueContainer}>
                             <Text style={styles.value}>{seance?.suivi || '—'}</Text>
                         </View>
