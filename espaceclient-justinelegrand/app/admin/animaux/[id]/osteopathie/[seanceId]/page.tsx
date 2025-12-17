@@ -38,8 +38,9 @@ export default function RemplissageOsteo() {
     const [date, setDate] = useState<string>('')
     const [showAntecedentsModal, setShowAntecedentsModal] = useState(false)
 
-    // NOUVEAU : État pour l'URL signée
+    // État pour les URLs signées (Gauche = Standard, Droite = Miroir)
     const [signedAnnotationUrl, setSignedAnnotationUrl] = useState<string | null>(null)
+    const [signedAnnotationUrlDroite, setSignedAnnotationUrlDroite] = useState<string | null>(null)
 
     const [localFields, setLocalFields] = useState<Partial<Record<EditableSeanceKey, string>>>({})
 
@@ -72,16 +73,25 @@ export default function RemplissageOsteo() {
                 notes_admin: typedData.notes_admin ?? '',
             })
 
-            // --- NOUVEAU : Charger l'URL signée si l'image existe ---
+            // --- 1. Charger l'image GAUCHE (Standard) ---
             if (typedData.annotation_squelette_url) {
                 const filePath = `${seanceId}/annotation.png`
                 const { data: signedData } = await supabase.storage
                     .from('annotations')
-                    .createSignedUrl(filePath, 3600) // Valide 1 heure
+                    .createSignedUrl(filePath, 3600)
 
-                if (signedData) {
-                    setSignedAnnotationUrl(signedData.signedUrl)
-                }
+                if (signedData) setSignedAnnotationUrl(signedData.signedUrl)
+            }
+
+            // --- 2. Charger l'image DROITE (Nouvelle colonne) ---
+            // On utilise 'as any' car la colonne n'existe peut-être pas encore dans vos types TS
+            if ((typedData as any).annotation_squelette_droite_url) {
+                const filePathDroite = `${seanceId}/annotation_droite.png`
+                const { data: signedDataDroite } = await supabase.storage
+                    .from('annotations')
+                    .createSignedUrl(filePathDroite, 3600)
+
+                if (signedDataDroite) setSignedAnnotationUrlDroite(signedDataDroite.signedUrl)
             }
 
             setLoading(false)
@@ -110,13 +120,13 @@ export default function RemplissageOsteo() {
         return true
     }
 
+    // Sauvegarde Côté GAUCHE (Standard)
     const handleSaveAnnotation = async (dataUrl: string) => {
         if (!seanceId || typeof seanceId !== 'string') return
 
         const response = await fetch(dataUrl)
         const blob = await response.blob()
         const file = new File([blob], `annotation_${seanceId}.png`, { type: 'image/png' })
-
         const filePath = `${seanceId}/annotation.png`
 
         const { error: uploadError } = await supabase.storage
@@ -124,23 +134,50 @@ export default function RemplissageOsteo() {
             .upload(filePath, file, { upsert: true })
 
         if (uploadError) {
-            console.error("Erreur d'upload de l'annotation:", uploadError)
+            console.error("Erreur upload annotation gauche:", uploadError)
             return
         }
 
-        // --- NOUVEAU : Mettre à jour l'URL signée après sauvegarde ---
+        // Rafraichir URL signée
         const { data: signedData } = await supabase.storage
             .from('annotations')
             .createSignedUrl(filePath, 3600)
+        if (signedData) setSignedAnnotationUrl(signedData.signedUrl)
 
-        if (signedData) {
-            setSignedAnnotationUrl(signedData.signedUrl)
+        // Sauvegarde URL publique en base
+        const { data: publicUrlData } = supabase.storage.from('annotations').getPublicUrl(filePath)
+        await handleUpdate('annotation_squelette_url', publicUrlData.publicUrl)
+    }
+
+    // Sauvegarde Côté DROIT (Miroir)
+    const handleSaveAnnotationDroite = async (dataUrl: string) => {
+        if (!seanceId || typeof seanceId !== 'string') return
+
+        const response = await fetch(dataUrl)
+        const blob = await response.blob()
+        // Nom de fichier différent : annotation_droite.png
+        const file = new File([blob], `annotation_droite_${seanceId}.png`, { type: 'image/png' })
+        const filePath = `${seanceId}/annotation_droite.png`
+
+        const { error: uploadError } = await supabase.storage
+            .from('annotations')
+            .upload(filePath, file, { upsert: true })
+
+        if (uploadError) {
+            console.error("Erreur upload annotation droite:", uploadError)
+            return
         }
 
-        const { data: publicUrlData } = supabase.storage.from('annotations').getPublicUrl(filePath)
-        const publicUrl = publicUrlData.publicUrl
+        // Rafraichir URL signée
+        const { data: signedData } = await supabase.storage
+            .from('annotations')
+            .createSignedUrl(filePath, 3600)
+        if (signedData) setSignedAnnotationUrlDroite(signedData.signedUrl)
 
-        await handleUpdate('annotation_squelette_url', publicUrl)
+        // Sauvegarde dans la NOUVELLE colonne
+        const { data: publicUrlData } = supabase.storage.from('annotations').getPublicUrl(filePath)
+        // On cast en 'any' pour éviter l'erreur TypeScript tant que la colonne n'est pas dans les types
+        await handleUpdate('annotation_squelette_droite_url' as any, publicUrlData.publicUrl)
     }
 
     if (loading) return <p className="text-center mt-8">Chargement de la séance...</p>
@@ -270,13 +307,37 @@ export default function RemplissageOsteo() {
 
             <section className={currentSection === 'annotation' ? '' : 'hidden'}>
                 <TitrePrincipal>Annotation du squelette</TitrePrincipal>
-                <p className="mb-4 text-sm text-gray-600">Dessinez directement sur le schéma pour indiquer les zones à traiter.</p>
-                <AnnotationSquelette
-                    espece={animal?.espece}
-                    // MODIFIÉ : Utiliser l'URL signée en priorité
-                    initialDrawingUrl={signedAnnotationUrl || seance.annotation_squelette_url}
-                    onSave={handleSaveAnnotation}
-                />
+                <p className="mb-4 text-sm text-gray-600">Dessinez directement sur les schémas.</p>
+
+                {/* GRILLE POUR LES DEUX SQUELETTES */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                    {/* Côté GAUCHE (Standard) */}
+                    <div>
+                        <h3 className="text-center font-bold text-[#6E4B42] mb-2">Profil Gauche</h3>
+                        <AnnotationSquelette
+                            espece={animal?.espece}
+                            initialDrawingUrl={signedAnnotationUrl || seance.annotation_squelette_url}
+                            onSave={handleSaveAnnotation}
+                        />
+                    </div>
+
+                    {/* Côté DROIT (Miroir) */}
+                    <div>
+                        <h3 className="text-center font-bold text-[#6E4B42] mb-2">Profil Droit (Miroir)</h3>
+                        {/* On retourne le conteneur horizontalement pour l'effet miroir */}
+                        <div className="transform scale-x-[-1]">
+                            <AnnotationSquelette
+                                espece={animal?.espece}
+                                initialDrawingUrl={signedAnnotationUrlDroite || (seance as any).annotation_squelette_droite_url}
+                                onSave={handleSaveAnnotationDroite}
+                            />
+                        </div>
+                        <p className="text-xs text-center text-gray-500 mt-2 italic">
+                            Note : L'interface est inversée pour simuler l'autre côté.
+                        </p>
+                    </div>
+                </div>
             </section>
 
             <section className={currentSection === 'mesures' ? '' : 'hidden'}>
