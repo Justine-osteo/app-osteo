@@ -1,3 +1,4 @@
+import React, { FC } from 'react';
 import {
     Document,
     Page,
@@ -6,8 +7,40 @@ import {
     StyleSheet,
     Font,
     Image
-} from '@react-pdf/renderer'
-import { FC } from 'react'
+} from '@react-pdf/renderer';
+
+// --- TYPES ---
+export type SeanceTypePDF = {
+    date?: string;
+    motif?: string;
+    observations?: string;
+    annotation_squelette_url?: string | null;
+    annotation_squelette_droite_url?: string | null;
+    recommandations?: string;
+    suivi?: string;
+    mesures_avant?: {
+        avant_gauche?: string;
+        avant_droit?: string;
+        arriere_gauche?: string;
+        arriere_droit?: string;
+    };
+    mesures_apres?: {
+        avant_gauche?: string;
+        avant_droit?: string;
+        arriere_gauche?: string;
+        arriere_droit?: string;
+    };
+};
+
+type Props = {
+    seance: SeanceTypePDF;
+    animalName: string;
+    clientName: string;
+    // Ajout de props pour rendre le template dynamique
+    practitionerName?: string;
+    practitionerContact?: string;
+    logoUrl?: string;
+};
 
 // Fonction utilitaire pour construire l'URL absolue des polices
 const getFontUrl = (path: string) => {
@@ -17,12 +50,11 @@ const getFontUrl = (path: string) => {
     return path;
 };
 
-// Enregistrement des polices
+// Enregistrement des polices (Assurez-vous que les fichiers sont dans votre dossier public/fonts)
 Font.register({
     family: 'Charm',
     fonts: [
         { src: getFontUrl('/fonts/Charm-Regular.ttf') },
-        // ASTUCE : Si vous avez 'Charm-Bold.ttf', remplacez le nom ci-dessous.
         { src: getFontUrl('/fonts/Charm-Regular.ttf'), fontWeight: 'bold' }
     ]
 });
@@ -32,15 +64,26 @@ Font.register({
 });
 
 // --- STYLES ---
+// On centralise les couleurs pour faciliter les modifications futures
+const theme = {
+    primary: '#B05F63',
+    secondary: '#FBEAEC',
+    border: '#E5E7EB',
+    bgLight: '#F9FAFB',
+    textDark: '#111827',
+    textGrey: '#374151',
+    white: '#FFFFFF'
+};
+
 const styles = StyleSheet.create({
     page: {
-        backgroundColor: '#FFFFFF',
-        paddingBottom: 70,
+        backgroundColor: theme.white,
+        paddingBottom: 70, // Espace pour le footer
         fontFamily: 'Open Sans',
     },
     // --- HEADER ---
     headerContainer: {
-        backgroundColor: '#B05F63',
+        backgroundColor: theme.primary,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -51,25 +94,32 @@ const styles = StyleSheet.create({
     headerSide: { width: '25%' },
     headerCenter: { width: '50%', alignItems: 'center' },
 
+    // Logo optionnel
+    logo: {
+        width: 50,
+        height: 50,
+        objectFit: 'contain',
+    },
+
     animalName: {
         fontFamily: 'Charm',
         fontSize: 30,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: theme.white,
         textAlign: 'center',
     },
     dateSeance: {
         fontSize: 14,
-        color: '#FBEAEC',
+        color: theme.secondary,
         marginTop: 2,
         textAlign: 'center',
     },
-    ownerLabel: { fontSize: 10, color: '#FBEAEC', textAlign: 'right' },
+    ownerLabel: { fontSize: 10, color: theme.secondary, textAlign: 'right' },
     ownerName: {
         fontFamily: 'Charm',
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#FFFFFF',
+        color: theme.white,
         textAlign: 'right',
     },
 
@@ -80,7 +130,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Charm',
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#B05F63',
+        color: theme.primary,
         marginBottom: 20,
         textAlign: 'center',
         borderBottomWidth: 1,
@@ -95,13 +145,13 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontFamily: 'Charm',
         fontWeight: 'bold',
-        color: '#B05F63',
+        color: theme.primary,
         marginBottom: 6,
         paddingLeft: 4,
     },
 
     valueContainer: {
-        backgroundColor: '#F9FAFB',
+        backgroundColor: theme.bgLight,
         padding: 10,
         borderRadius: 6,
         borderWidth: 1,
@@ -110,7 +160,7 @@ const styles = StyleSheet.create({
 
     value: {
         fontSize: 12,
-        color: '#374151',
+        color: theme.textGrey,
         lineHeight: 1.5,
         textAlign: 'justify',
     },
@@ -121,7 +171,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginTop: 5,
         marginBottom: 15,
-        backgroundColor: '#F9FAFB',
+        backgroundColor: theme.bgLight,
         padding: 10,
         borderRadius: 6,
         borderWidth: 1,
@@ -133,11 +183,11 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginBottom: 4,
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
+        borderBottomColor: theme.border,
         paddingBottom: 2,
     },
     label: { fontSize: 9, color: '#6E4B42', fontWeight: 'bold' },
-    valMesure: { fontSize: 9, color: '#111827' },
+    valMesure: { fontSize: 9, color: theme.textDark },
 
     // --- IMAGE ---
     annotationImage: {
@@ -146,9 +196,9 @@ const styles = StyleSheet.create({
         objectFit: 'contain',
         marginTop: 5,
         borderWidth: 1,
-        borderColor: '#E5E7EB',
+        borderColor: theme.border,
         borderRadius: 4,
-        backgroundColor: '#F9FAFB',
+        backgroundColor: theme.bgLight,
     },
 
     // --- FOOTER ---
@@ -157,7 +207,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: '#B05F63',
+        backgroundColor: theme.primary,
         padding: 12,
         alignItems: 'center',
         justifyContent: 'center',
@@ -166,57 +216,39 @@ const styles = StyleSheet.create({
         fontFamily: 'Charm',
         fontWeight: 'bold',
         fontSize: 12,
-        color: '#FFFFFF',
+        color: theme.white,
     },
     footerSubText: {
         fontSize: 9,
-        color: '#FBEAEC',
+        color: theme.secondary,
         marginTop: 3,
         fontFamily: 'Open Sans',
     },
-})
+});
 
-export type SeanceTypePDF = {
-    date?: string
-    motif?: string
-    observations?: string
-    annotation_squelette_url?: string | null
-    recommandations?: string
-    suivi?: string
-    mesures_avant?: {
-        avant_gauche?: string
-        avant_droit?: string
-        arriere_gauche?: string
-        arriere_droit?: string
-    }
-    mesures_apres?: {
-        avant_gauche?: string
-        avant_droit?: string
-        arriere_gauche?: string
-        arriere_droit?: string
-    }
-    images?: {
-        gauche?: string
-        droite?: string
-    }
-}
+const CompteRenduPDF: FC<Props> = ({
+    seance,
+    animalName,
+    clientName,
+    // Valeurs par défaut si non fournies
+    practitionerName = "Justine Legrand OA796",
+    practitionerContact = "07 88 56 63 98  •  justine.legrand.osteo@gmail.com",
+    logoUrl
+}) => {
 
-type Props = {
-    seance: SeanceTypePDF
-    animalName: string
-    clientName: string
-}
-
-const CompteRenduPDF: FC<Props> = ({ seance, animalName, clientName }) => {
     const formatDate = (dateStr?: string) => {
-        if (!dateStr) return '—'
+        if (!dateStr) return '—';
         try {
-            const dateObj = new Date(dateStr)
-            return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(dateObj)
+            const dateObj = new Date(dateStr);
+            return new Intl.DateTimeFormat('fr-FR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            }).format(dateObj);
         } catch (e) {
-            return dateStr
+            return dateStr;
         }
-    }
+    };
 
     return (
         <Document>
@@ -224,11 +256,15 @@ const CompteRenduPDF: FC<Props> = ({ seance, animalName, clientName }) => {
 
                 {/* --- EN-TÊTE --- */}
                 <View style={styles.headerContainer} fixed>
-                    <View style={styles.headerSide} />
+                    <View style={styles.headerSide}>
+                        {logoUrl && <Image style={styles.logo} src={logoUrl} />}
+                    </View>
+
                     <View style={styles.headerCenter}>
                         <Text style={styles.animalName}>{animalName}</Text>
                         <Text style={styles.dateSeance}>Séance du {formatDate(seance?.date)}</Text>
                     </View>
+
                     <View style={styles.headerSide}>
                         <Text style={styles.ownerLabel}>Propriétaire :</Text>
                         <Text style={styles.ownerName}>{clientName}</Text>
@@ -239,7 +275,7 @@ const CompteRenduPDF: FC<Props> = ({ seance, animalName, clientName }) => {
                 <View style={styles.body}>
                     <Text style={styles.mainTitle}>Compte rendu de consultation ostéopathique</Text>
 
-                    {/* Motif - wrap={false} pour éviter la coupure */}
+                    {/* Motif */}
                     <View style={styles.section} wrap={false}>
                         <Text style={styles.colTitle}>Motif de la consultation :</Text>
                         <View style={styles.valueContainer}>
@@ -247,7 +283,7 @@ const CompteRenduPDF: FC<Props> = ({ seance, animalName, clientName }) => {
                         </View>
                     </View>
 
-                    {/* Observations - wrap={false} */}
+                    {/* Observations */}
                     <View style={styles.section} wrap={false}>
                         <Text style={styles.colTitle}>Observations :</Text>
                         <View style={styles.valueContainer}>
@@ -255,40 +291,87 @@ const CompteRenduPDF: FC<Props> = ({ seance, animalName, clientName }) => {
                         </View>
                     </View>
 
-                    {/* Annotation du Schéma - wrap={false} */}
-                    {seance.annotation_squelette_url && (
+                    {/* Annotations Schémas (Gauche / Droite) */}
+                    {(seance.annotation_squelette_url || seance.annotation_squelette_droite_url) && (
                         <View style={styles.section} wrap={false}>
-                            <Text style={styles.colTitle}>Schéma annoté :</Text>
-                            <Image
-                                style={styles.annotationImage}
-                                src={seance.annotation_squelette_url}
-                            />
+                            <Text style={styles.colTitle}>Schémas annotés :</Text>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                                {/* Profil Gauche (URL standard) */}
+                                {seance.annotation_squelette_url && (
+                                    <View style={{ width: seance.annotation_squelette_droite_url ? '48%' : '100%' }}>
+                                        <Text style={{ fontSize: 10, marginBottom: 5, color: theme.textGrey, fontWeight: 'bold' }}>
+                                            {seance.annotation_squelette_droite_url ? 'Profil Gauche' : 'Schéma'}
+                                        </Text>
+                                        <Image
+                                            style={[styles.annotationImage, { height: 200, marginTop: 0 }]}
+                                            src={seance.annotation_squelette_url}
+                                        />
+                                    </View>
+                                )}
+
+                                {/* Profil Droit */}
+                                {seance.annotation_squelette_droite_url && (
+                                    <View style={{ width: seance.annotation_squelette_url ? '48%' : '100%' }}>
+                                        <Text style={{ fontSize: 10, marginBottom: 5, color: theme.textGrey, fontWeight: 'bold' }}>Profil Droit</Text>
+                                        <Image
+                                            style={[styles.annotationImage, { height: 200, marginTop: 0 }]}
+                                            src={seance.annotation_squelette_droite_url}
+                                        />
+                                    </View>
+                                )}
+                            </View>
                         </View>
                     )}
 
-                    {/* Mesures Musculaires - wrap={false} */}
+                    {/* Mesures Musculaires */}
                     <View style={styles.section} wrap={false}>
                         <Text style={styles.colTitle}>Mesures musculaires :</Text>
                         <View style={styles.mesuresContainer}>
+                            {/* Colonne Avant */}
                             <View style={styles.col}>
                                 <Text style={[styles.label, { marginBottom: 6, fontSize: 10 }]}>Mesures avant</Text>
-                                <View style={styles.row}><Text style={styles.label}>Av G :</Text><Text style={styles.valMesure}>{seance?.mesures_avant?.avant_gauche || '-'}</Text></View>
-                                <View style={styles.row}><Text style={styles.label}>Av D :</Text><Text style={styles.valMesure}>{seance?.mesures_avant?.avant_droit || '-'}</Text></View>
-                                <View style={styles.row}><Text style={styles.label}>Ar G :</Text><Text style={styles.valMesure}>{seance?.mesures_avant?.arriere_gauche || '-'}</Text></View>
-                                <View style={styles.row}><Text style={styles.label}>Ar D :</Text><Text style={styles.valMesure}>{seance?.mesures_avant?.arriere_droit || '-'}</Text></View>
+                                <View style={styles.row}>
+                                    <Text style={styles.label}>Av G :</Text>
+                                    <Text style={styles.valMesure}>{seance?.mesures_avant?.avant_gauche || '-'}</Text>
+                                </View>
+                                <View style={styles.row}>
+                                    <Text style={styles.label}>Av D :</Text>
+                                    <Text style={styles.valMesure}>{seance?.mesures_avant?.avant_droit || '-'}</Text>
+                                </View>
+                                <View style={styles.row}>
+                                    <Text style={styles.label}>Ar G :</Text>
+                                    <Text style={styles.valMesure}>{seance?.mesures_avant?.arriere_gauche || '-'}</Text>
+                                </View>
+                                <View style={styles.row}>
+                                    <Text style={styles.label}>Ar D :</Text>
+                                    <Text style={styles.valMesure}>{seance?.mesures_avant?.arriere_droit || '-'}</Text>
+                                </View>
                             </View>
 
+                            {/* Colonne Après */}
                             <View style={styles.col}>
                                 <Text style={[styles.label, { marginBottom: 6, fontSize: 10 }]}>Mesures après</Text>
-                                <View style={styles.row}><Text style={styles.label}>Av G :</Text><Text style={styles.valMesure}>{seance?.mesures_apres?.avant_gauche || '-'}</Text></View>
-                                <View style={styles.row}><Text style={styles.label}>Av D :</Text><Text style={styles.valMesure}>{seance?.mesures_apres?.avant_droit || '-'}</Text></View>
-                                <View style={styles.row}><Text style={styles.label}>Ar G :</Text><Text style={styles.valMesure}>{seance?.mesures_apres?.arriere_gauche || '-'}</Text></View>
-                                <View style={styles.row}><Text style={styles.label}>Ar D :</Text><Text style={styles.valMesure}>{seance?.mesures_apres?.arriere_droit || '-'}</Text></View>
+                                <View style={styles.row}>
+                                    <Text style={styles.label}>Av G :</Text>
+                                    <Text style={styles.valMesure}>{seance?.mesures_apres?.avant_gauche || '-'}</Text>
+                                </View>
+                                <View style={styles.row}>
+                                    <Text style={styles.label}>Av D :</Text>
+                                    <Text style={styles.valMesure}>{seance?.mesures_apres?.avant_droit || '-'}</Text>
+                                </View>
+                                <View style={styles.row}>
+                                    <Text style={styles.label}>Ar G :</Text>
+                                    <Text style={styles.valMesure}>{seance?.mesures_apres?.arriere_gauche || '-'}</Text>
+                                </View>
+                                <View style={styles.row}>
+                                    <Text style={styles.label}>Ar D :</Text>
+                                    <Text style={styles.valMesure}>{seance?.mesures_apres?.arriere_droit || '-'}</Text>
+                                </View>
                             </View>
                         </View>
                     </View>
 
-                    {/* Recommandations - wrap={false} */}
+                    {/* Recommandations */}
                     <View style={styles.section} wrap={false}>
                         <Text style={styles.colTitle}>Recommandations & Conseils :</Text>
                         <View style={styles.valueContainer}>
@@ -296,7 +379,7 @@ const CompteRenduPDF: FC<Props> = ({ seance, animalName, clientName }) => {
                         </View>
                     </View>
 
-                    {/* Suivi - wrap={false} */}
+                    {/* Suivi */}
                     <View style={styles.section} wrap={false}>
                         <Text style={styles.colTitle}>Suivi envisagé :</Text>
                         <View style={styles.valueContainer}>
@@ -308,15 +391,15 @@ const CompteRenduPDF: FC<Props> = ({ seance, animalName, clientName }) => {
                 {/* --- FOOTER --- */}
                 <View style={styles.footerContainer} fixed>
                     <Text style={styles.footerText}>
-                        Séance réalisée par Justine Legrand OA796
+                        Séance réalisée par {practitionerName}
                     </Text>
                     <Text style={styles.footerSubText}>
-                        07 88 56 63 98  •  justine.legrand.osteo@gmail.com
+                        {practitionerContact}
                     </Text>
                 </View>
             </Page>
         </Document>
-    )
-}
+    );
+};
 
-export default CompteRenduPDF
+export default CompteRenduPDF;
