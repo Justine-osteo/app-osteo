@@ -232,7 +232,7 @@ const CompteRenduPDF: FC<Props> = ({
     clientName,
     // Valeurs par défaut si non fournies
     practitionerName = "Justine Legrand OA796",
-    practitionerContact = "07 88 56 63 98  •  jlegrand.osteopatheanimalie@orange.fr",
+    practitionerContact = "07 88 56 63 98  •  jlegrand.osteopatheanimalier@orange.fr",
     logoUrl
 }) => {
 
