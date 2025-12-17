@@ -12,15 +12,18 @@ import EcranDeChargement from '@/components/ui/EcranDeChargement'
 import { pdf } from '@react-pdf/renderer'
 import CompteRenduPDF, { SeanceTypePDF } from '@/components/CompteRenduPDF'
 
+// 1. MISE À JOUR DU TYPE
 type SeanceFromDB = {
     id: string
     date: string
     motif?: string
     observations?: string
-    observations_osteo?: string // Ajout du champ manquant
+    observations_osteo?: string
     recommandations?: string
     suivi?: string
     annotation_squelette_url?: string | null
+    // AJOUT DU CHAMP DROIT
+    annotation_squelette_droit_url?: string | null
     // Mesures
     mesure_ant_gauche_avant?: number
     mesure_ant_droite_avant?: number
@@ -57,11 +60,12 @@ export default function DetailSeanceOsteopathie() {
         const fetchData = async () => {
             setLoading(true)
 
-            // CORRECTION : Ajout de 'observations_osteo' dans la requête
+            // 2. MISE À JOUR DE LA REQUÊTE SUPABASE
             const { data, error } = await (supabase
                 .from('seances') as any)
                 .select(`
-                    id, date, motif, observations, observations_osteo, recommandations, suivi, annotation_squelette_url,
+                    id, date, motif, observations, observations_osteo, recommandations, suivi, 
+                    annotation_squelette_url, annotation_squelette_droit_url,
                     mesure_ant_gauche_avant, mesure_ant_droite_avant, mesure_post_gauche_avant, mesure_post_droite_avant,
                     mesure_ant_gauche_apres, mesure_ant_droite_apres, mesure_post_gauche_apres, mesure_post_droite_apres,
                     animaux (
@@ -99,23 +103,23 @@ export default function DetailSeanceOsteopathie() {
         setGeneratingPdf(true)
 
         try {
-            let finalImageAnnotation = null
+            // 3. FONCTION UTILITAIRE POUR TÉLÉCHARGER UNE IMAGE
+            // Cela évite de dupliquer tout le bloc de code "bucket/path/decode"
+            const downloadImageAsBase64 = async (url: string | null | undefined) => {
+                if (!url) return null;
 
-            // 1. GESTION DE L'IMAGE (Squelette)
-            if (seance.annotation_squelette_url) {
                 let bucketName = '';
                 let path = '';
 
                 // Logique de détection du bucket
-                if (seance.annotation_squelette_url.includes('/annotations/')) {
+                if (url.includes('/annotations/')) {
                     bucketName = 'annotations';
-                    path = seance.annotation_squelette_url.split('/annotations/')[1];
-                } else if (seance.annotation_squelette_url.includes('/schemas/')) {
+                    path = url.split('/annotations/')[1];
+                } else if (url.includes('/schemas/')) {
                     bucketName = 'schemas';
-                    path = seance.annotation_squelette_url.split('/schemas/')[1];
+                    path = url.split('/schemas/')[1];
                 } else {
-                    // Fallback
-                    const urlParts = seance.annotation_squelette_url.split('/public/');
+                    const urlParts = url.split('/public/');
                     if (urlParts.length > 1) {
                         const relativePath = urlParts[1];
                         const firstSlash = relativePath.indexOf('/');
@@ -124,8 +128,6 @@ export default function DetailSeanceOsteopathie() {
                     }
                 }
 
-                // CORRECTION IMPORTANTE : decodeURIComponent
-                // Si l'URL contient des espaces (%20) ou accents, le téléchargement échoue sans ça.
                 if (path) path = decodeURIComponent(path);
 
                 if (bucketName && path) {
@@ -134,15 +136,21 @@ export default function DetailSeanceOsteopathie() {
                         .download(path);
 
                     if (!downloadError && blob) {
-                        finalImageAnnotation = await blobToBase64(blob);
+                        return await blobToBase64(blob);
                     } else {
                         console.error("Erreur téléchargement image:", downloadError);
                     }
                 }
-            }
+                return null;
+            };
 
-            // 2. PRÉPARATION DES DONNÉES PDF
-            // On combine observations générales ET observations ostéo pour qu'elles apparaissent toutes les deux
+            // 4. TÉLÉCHARGEMENT DES DEUX IMAGES (en parallèle pour aller plus vite)
+            const [finalImageGauche, finalImageDroit] = await Promise.all([
+                downloadImageAsBase64(seance.annotation_squelette_url),
+                downloadImageAsBase64(seance.annotation_squelette_droit_url)
+            ]);
+
+            // 5. PRÉPARATION DES DONNÉES PDF
             const combinedObservations = [
                 seance.observations ? `Générales : ${seance.observations}` : null,
                 seance.observations_osteo ? `Ostéopathiques : ${seance.observations_osteo}` : null
@@ -151,10 +159,12 @@ export default function DetailSeanceOsteopathie() {
             const pdfData: SeanceTypePDF = {
                 date: seance.date,
                 motif: seance.motif,
-                observations: combinedObservations, // Utilisation du texte combiné
+                observations: combinedObservations,
                 recommandations: seance.recommandations,
                 suivi: seance.suivi,
-                annotation_squelette_url: finalImageAnnotation,
+                // On passe les deux images converties en Base64
+                annotation_squelette_url: finalImageGauche,
+                annotation_squelette_droit_url: finalImageDroit,
                 mesures_avant: {
                     avant_gauche: seance.mesure_ant_gauche_avant?.toString() || '—',
                     avant_droit: seance.mesure_ant_droite_avant?.toString() || '—',
@@ -234,7 +244,6 @@ export default function DetailSeanceOsteopathie() {
                         <p className="bg-gray-50 p-2 rounded text-sm whitespace-pre-line">{seance.recommandations || '—'}</p>
                     </div>
 
-                    {/* Affichage des mesures dans le résumé web */}
                     {(seance.mesure_ant_gauche_avant || seance.mesure_ant_gauche_apres) && (
                         <div className="mt-4">
                             <span className="font-semibold block mb-2">Mesures musculaires :</span>
@@ -257,10 +266,19 @@ export default function DetailSeanceOsteopathie() {
                         </div>
                     )}
 
-                    {seance.annotation_squelette_url && (
+                    {/* Mise à jour visuelle pour indiquer que plusieurs schémas peuvent être dispos */}
+                    {(seance.annotation_squelette_url || seance.annotation_squelette_droit_url) && (
                         <div className="mt-4 pt-4 border-t border-dashed border-gray-300">
-                            <span className="font-semibold block mb-2">Schéma annoté disponible</span>
-                            <p className="text-xs text-gray-500 italic">Le schéma sera inclus dans le PDF téléchargeable ci-dessous.</p>
+                            <span className="font-semibold block mb-2">
+                                {seance.annotation_squelette_url && seance.annotation_squelette_droit_url
+                                    ? "Schémas annotés disponibles (2)"
+                                    : "Schéma annoté disponible"}
+                            </span>
+                            <p className="text-xs text-gray-500 italic">
+                                {seance.annotation_squelette_url && seance.annotation_squelette_droit_url
+                                    ? "Les schémas (gauche et droit) seront inclus dans le PDF téléchargeable ci-dessous."
+                                    : "Le schéma sera inclus dans le PDF téléchargeable ci-dessous."}
+                            </p>
                         </div>
                     )}
                 </div>

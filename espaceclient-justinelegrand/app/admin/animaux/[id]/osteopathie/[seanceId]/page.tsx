@@ -169,7 +169,7 @@ export default function RemplissageOsteo() {
             .upload(filePath, file, { upsert: true })
 
         if (uploadError) {
-            console.error("Erreur d'upload annotation droite:", uploadError)
+            console.error("Erreur d'upload annotation droit:", uploadError)
             return
         }
 
