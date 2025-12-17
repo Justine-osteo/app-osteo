@@ -15,7 +15,7 @@ export type SeanceTypePDF = {
     motif?: string;
     observations?: string;
     annotation_squelette_url?: string | null;
-    annotation_squelette_droite_url?: string | null;
+    annotation_squelette_droit_url?: string | null;
     recommandations?: string;
     suivi?: string;
     mesures_avant?: {
@@ -232,7 +232,7 @@ const CompteRenduPDF: FC<Props> = ({
     clientName,
     // Valeurs par défaut si non fournies
     practitionerName = "Justine Legrand OA796",
-    practitionerContact = "07 88 56 63 98  •  justine.legrand.osteo@gmail.com",
+    practitionerContact = "07 88 56 63 98  •  jlegrand.osteopatheanimalie@orange.fr",
     logoUrl
 }) => {
 
@@ -292,15 +292,15 @@ const CompteRenduPDF: FC<Props> = ({
                     </View>
 
                     {/* Annotations Schémas (Gauche / Droite) */}
-                    {(seance.annotation_squelette_url || seance.annotation_squelette_droite_url) && (
+                    {(seance.annotation_squelette_url || seance.annotation_squelette_droit_url) && (
                         <View style={styles.section} wrap={false}>
                             <Text style={styles.colTitle}>Schémas annotés :</Text>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                                 {/* Profil Gauche (URL standard) */}
                                 {seance.annotation_squelette_url && (
-                                    <View style={{ width: seance.annotation_squelette_droite_url ? '48%' : '100%' }}>
+                                    <View style={{ width: seance.annotation_squelette_droit_url ? '48%' : '100%' }}>
                                         <Text style={{ fontSize: 10, marginBottom: 5, color: theme.textGrey, fontWeight: 'bold' }}>
-                                            {seance.annotation_squelette_droite_url ? 'Profil Gauche' : 'Schéma'}
+                                            {seance.annotation_squelette_droit_url ? 'Profil Gauche' : 'Schéma'}
                                         </Text>
                                         <Image
                                             style={[styles.annotationImage, { height: 200, marginTop: 0 }]}
@@ -310,12 +310,12 @@ const CompteRenduPDF: FC<Props> = ({
                                 )}
 
                                 {/* Profil Droit */}
-                                {seance.annotation_squelette_droite_url && (
+                                {seance.annotation_squelette_droit_url && (
                                     <View style={{ width: seance.annotation_squelette_url ? '48%' : '100%' }}>
                                         <Text style={{ fontSize: 10, marginBottom: 5, color: theme.textGrey, fontWeight: 'bold' }}>Profil Droit</Text>
                                         <Image
                                             style={[styles.annotationImage, { height: 200, marginTop: 0 }]}
-                                            src={seance.annotation_squelette_droite_url}
+                                            src={seance.annotation_squelette_droit_url}
                                         />
                                     </View>
                                 )}
