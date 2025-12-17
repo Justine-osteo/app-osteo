@@ -38,13 +38,15 @@ export default function RemplissageOsteo() {
     const [date, setDate] = useState<string>('')
     const [showAntecedentsModal, setShowAntecedentsModal] = useState(false)
 
+    // NOUVEAU : État pour l'URL signée
+    const [signedAnnotationUrl, setSignedAnnotationUrl] = useState<string | null>(null)
+
     const [localFields, setLocalFields] = useState<Partial<Record<EditableSeanceKey, string>>>({})
 
     useEffect(() => {
         const fetchSeance = async () => {
             if (typeof seanceId !== 'string') return
 
-            // CORRECTION TS : On utilise 'as any' pour éviter les blocages de typage sur le select
             const { data, error } = await (supabase
                 .from('seances') as any)
                 .select('*, animaux(*)')
@@ -69,6 +71,19 @@ export default function RemplissageOsteo() {
                 suivi: typedData.suivi ?? '',
                 notes_admin: typedData.notes_admin ?? '',
             })
+
+            // --- NOUVEAU : Charger l'URL signée si l'image existe ---
+            if (typedData.annotation_squelette_url) {
+                const filePath = `${seanceId}/annotation.png`
+                const { data: signedData } = await supabase.storage
+                    .from('annotations')
+                    .createSignedUrl(filePath, 3600) // Valide 1 heure
+
+                if (signedData) {
+                    setSignedAnnotationUrl(signedData.signedUrl)
+                }
+            }
+
             setLoading(false)
         }
 
@@ -78,8 +93,6 @@ export default function RemplissageOsteo() {
     const handleUpdate = async (champ: keyof Seance, valeur: string | number | null) => {
         if (!seanceId || typeof seanceId !== 'string') return false
 
-        // CORRECTION TS : C'est ici que l'erreur "never" se produisait.
-        // On caste en 'any' pour autoriser la mise à jour dynamique { [champ]: valeur }
         const { error } = await (supabase
             .from('seances') as any)
             .update({ [champ]: valeur })
@@ -113,6 +126,15 @@ export default function RemplissageOsteo() {
         if (uploadError) {
             console.error("Erreur d'upload de l'annotation:", uploadError)
             return
+        }
+
+        // --- NOUVEAU : Mettre à jour l'URL signée après sauvegarde ---
+        const { data: signedData } = await supabase.storage
+            .from('annotations')
+            .createSignedUrl(filePath, 3600)
+
+        if (signedData) {
+            setSignedAnnotationUrl(signedData.signedUrl)
         }
 
         const { data: publicUrlData } = supabase.storage.from('annotations').getPublicUrl(filePath)
@@ -251,7 +273,8 @@ export default function RemplissageOsteo() {
                 <p className="mb-4 text-sm text-gray-600">Dessinez directement sur le schéma pour indiquer les zones à traiter.</p>
                 <AnnotationSquelette
                     espece={animal?.espece}
-                    initialDrawingUrl={seance.annotation_squelette_url}
+                    // MODIFIÉ : Utiliser l'URL signée en priorité
+                    initialDrawingUrl={signedAnnotationUrl || seance.annotation_squelette_url}
                     onSave={handleSaveAnnotation}
                 />
             </section>
@@ -259,7 +282,6 @@ export default function RemplissageOsteo() {
             <section className={currentSection === 'mesures' ? '' : 'hidden'}>
                 <TitrePrincipal>Mesures musculaires</TitrePrincipal>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {/* Colonnes correctement nommées avec "droite" au lieu de "droit" */}
                     {["ant_droite", "ant_gauche", "post_droite", "post_gauche"].map((zone) => (
                         <div key={zone} className="space-y-2 bg-white p-3 rounded-md border">
                             <label className="block text-[#6E4B42] font-semibold capitalize">
