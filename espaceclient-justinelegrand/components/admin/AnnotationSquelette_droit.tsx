@@ -5,9 +5,9 @@ import { Eraser, Pencil } from 'lucide-react'
 
 const SKELETON_MAP: Record<string, string> = {
     chien: '/images/squelette-chienD.png',
-    chat: '/images/squelette-chat.png',
-    cheval: '/images/squelette-cheval.png',
-    vache: '/images/squelette-vache.png',
+    chat: '/images/squelette-chatD.png',
+    cheval: '/images/squelette-chevalD.png',
+    vache: '/images/squelette-vacheD.png',
 }
 
 const COLORS = ['#E53E3E', '#ED8936', '#ECC94B', '#4299E1']
